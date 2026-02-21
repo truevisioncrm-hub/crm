@@ -1,0 +1,171 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LogOut, Settings, type LucideIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+
+export interface NavItem {
+    label: string;
+    icon: LucideIcon;
+    href: string;
+}
+
+interface SidebarProps {
+    items: NavItem[];
+    collapsed: boolean;
+    onToggle: () => void;
+}
+
+const COLLAPSED_W = 80;
+const EXPANDED_W = 250;
+const TRANSITION = "all 250ms cubic-bezier(0.4, 0, 0.2, 1)";
+
+export default function Sidebar({ items, collapsed, onToggle }: SidebarProps) {
+    const pathname = usePathname();
+    const { logout } = useAuth();
+
+    const sidebarWidth = collapsed ? COLLAPSED_W : EXPANDED_W;
+
+    return (
+        <>
+            {/* Sidebar */}
+            <aside
+                className="fixed top-0 left-0 h-screen z-50 flex flex-col bg-white border-r border-neutral-200 py-6 overflow-hidden"
+                style={{ width: sidebarWidth, transition: TRANSITION }}
+            >
+                {/* Logo */}
+                <div className={`mb-8 flex items-center shrink-0 ${collapsed ? "justify-center px-1" : "px-6 gap-3"}`}>
+                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white text-sm font-black tracking-tight shadow-md shadow-primary/20 shrink-0">
+                        TV
+                    </div>
+                    <span
+                        className="text-lg font-bold text-neutral-900 tracking-tight whitespace-nowrap overflow-hidden"
+                        style={{
+                            width: collapsed ? 0 : "auto",
+                            opacity: collapsed ? 0 : 1,
+                            transition: TRANSITION,
+                        }}
+                    >
+                        TrueVision
+                    </span>
+                </div>
+
+                {/* Nav */}
+                <nav className="flex-1 flex flex-col gap-1 w-full px-3 overflow-y-auto overflow-x-hidden no-scrollbar">
+                    {items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href || (pathname.startsWith(item.href + "/") && item.href !== "/admin/dashboard" && item.href !== "/agent/dashboard");
+
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`group relative flex items-center gap-3 rounded-xl ${isActive
+                                    ? "bg-primary text-white shadow-lg shadow-primary/25"
+                                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                                    }`}
+                                style={{
+                                    padding: collapsed ? "12px" : "10px 12px",
+                                    justifyContent: collapsed ? "center" : "flex-start",
+                                    transition: TRANSITION,
+                                }}
+                                title={collapsed ? item.label : undefined}
+                            >
+                                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                                <span
+                                    className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                                    style={{
+                                        width: collapsed ? 0 : "auto",
+                                        opacity: collapsed ? 0 : 1,
+                                        transition: TRANSITION,
+                                    }}
+                                >
+                                    {item.label}
+                                </span>
+
+                                {/* Tooltip (collapsed only) */}
+                                {collapsed && (
+                                    <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[70]">
+                                        {item.label}
+                                        <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-neutral-900 rotate-45" />
+                                    </div>
+                                )}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Bottom Actions */}
+                <div className="mt-auto flex flex-col gap-1 w-full px-3 shrink-0">
+                    <button
+                        className="group relative flex items-center gap-3 rounded-xl text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                        style={{
+                            padding: collapsed ? "12px" : "10px 12px",
+                            justifyContent: collapsed ? "center" : "flex-start",
+                            transition: TRANSITION,
+                        }}
+                    >
+                        <Settings size={22} strokeWidth={2} className="shrink-0" />
+                        <span
+                            className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                            style={{
+                                width: collapsed ? 0 : "auto",
+                                opacity: collapsed ? 0 : 1,
+                                transition: TRANSITION,
+                            }}
+                        >
+                            Settings
+                        </span>
+                        {collapsed && (
+                            <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[70]">
+                                Settings
+                            </div>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={logout}
+                        className="group relative flex items-center gap-3 rounded-xl text-neutral-500 hover:bg-red-50 hover:text-red-600"
+                        style={{
+                            padding: collapsed ? "12px" : "10px 12px",
+                            justifyContent: collapsed ? "center" : "flex-start",
+                            transition: TRANSITION,
+                        }}
+                    >
+                        <LogOut size={22} strokeWidth={2} className="shrink-0" />
+                        <span
+                            className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                            style={{
+                                width: collapsed ? 0 : "auto",
+                                opacity: collapsed ? 0 : 1,
+                                transition: TRANSITION,
+                            }}
+                        >
+                            Logout
+                        </span>
+                        {collapsed && (
+                            <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[70]">
+                                Logout
+                            </div>
+                        )}
+                    </button>
+                </div>
+            </aside>
+
+            {/* Edge Toggle Button — sits on the sidebar border, slides with it */}
+            <button
+                onClick={onToggle}
+                className="fixed z-[60] flex items-center justify-center w-7 h-7 bg-white border border-neutral-200 rounded-full text-neutral-400 shadow-lg hover:text-primary hover:border-primary hover:shadow-xl"
+                style={{
+                    top: "50%",
+                    left: sidebarWidth - 14,
+                    transform: "translateY(-50%)",
+                    transition: TRANSITION,
+                }}
+            >
+                {collapsed ? <ChevronRight size={14} strokeWidth={2.5} /> : <ChevronLeft size={14} strokeWidth={2.5} />}
+            </button>
+        </>
+    );
+}
