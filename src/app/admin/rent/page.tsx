@@ -22,6 +22,12 @@ const RENT_PRICES = [
     "AED 300K - 500K / yr", "AED 500K+ / yr",
 ];
 
+const AMENITIES_LIST = [
+    "Maid's Room", "Balcony", "Built-in Wardrobes", "Central A/C",
+    "Covered Parking", "Private Garden", "Shared Pool", "Security",
+    "View of Water", "Walk-in Closet", "View of Landmark"
+];
+
 interface Property {
     id: number;
     title: string;
@@ -76,6 +82,12 @@ export default function RentInventoryPage() {
         const rentValue = rentSelect === "custom" ? rentCustom : rentSelect;
         const locationValue = locationSelect === "custom" ? locationCustom : locationSelect;
 
+        const selectedAmenities = formData.getAll("amenities") as string[];
+        const features: any = selectedAmenities.reduce((acc, curr) => ({ ...acc, [curr]: true }), {});
+        
+        const cheques = formData.get("cheques") as string;
+        if (cheques) features.cheques = Number(cheques);
+
         const newProperty = {
             title: formData.get("title") as string,
             location: locationValue,
@@ -90,6 +102,7 @@ export default function RentInventoryPage() {
             completion_status: formData.get("completion_status") as string || "Completed",
             furnished: formData.get("furnished") as string || "Unfurnished",
             description: formData.get("description") as string || null,
+            features,
         };
 
         try {
@@ -228,13 +241,11 @@ export default function RentInventoryPage() {
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-medium text-neutral-700">Property Type *</label>
                                             <select required name="property_type" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="studio">Studio</option>
-                                                <option value="1bhk">1 Bedroom Apartment</option>
-                                                <option value="2bhk">2 Bedroom Apartment</option>
-                                                <option value="3bhk">3 Bedroom Apartment</option>
-                                                <option value="4bhk">4+ Bedroom Apartment</option>
+                                                <option value="apartment">Apartment</option>
+                                                <option value="villa">Villa</option>
+                                                <option value="townhouse">Townhouse</option>
                                                 <option value="penthouse">Penthouse</option>
-                                                <option value="villa">Villa / Townhouse</option>
+                                                <option value="duplex">Duplex</option>
                                                 <option value="commercial">Commercial</option>
                                             </select>
                                         </div>
@@ -273,6 +284,16 @@ export default function RentInventoryPage() {
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-medium text-neutral-700">BUA (sqft)</label>
                                             <input name="bua_sqft" type="number" placeholder="e.g. 750" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-medium text-neutral-700">Rent Cheques</label>
+                                            <select name="cheques" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
+                                                <option value="1">1 Cheque</option>
+                                                <option value="2">2 Cheques</option>
+                                                <option value="4">4 Cheques</option>
+                                                <option value="6">6 Cheques</option>
+                                                <option value="12">12 Cheques</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -320,6 +341,19 @@ export default function RentInventoryPage() {
                                                 <option value="Furnished">Furnished</option>
                                             </select>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Amenities */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Amenities</h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                        {AMENITIES_LIST.map((amenity) => (
+                                            <label key={amenity} className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer">
+                                                <input type="checkbox" name="amenities" value={amenity} className="rounded text-primary focus:ring-primary/20 bg-neutral-50 border-neutral-300" />
+                                                <span className="truncate">{amenity}</span>
+                                            </label>
+                                        ))}
                                     </div>
                                 </div>
 

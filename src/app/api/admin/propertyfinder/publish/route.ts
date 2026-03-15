@@ -3,14 +3,11 @@ import { NextResponse } from 'next/server';
 import { createPFListing, searchPFLocations } from '@/lib/propertyfinder';
 
 const PROPERTY_TYPE_MAP: Record<string, string> = {
-    '1bhk': 'apartment',
-    '2bhk': 'apartment',
-    '3bhk': 'apartment',
-    '4bhk': 'apartment',
     'apartment': 'apartment',
     'villa': 'villa',
     'townhouse': 'townhouse',
     'penthouse': 'penthouse',
+    'duplex': 'duplex',
     'plot': 'commercial-plot',
     'commercial': 'office',
     'office': 'office',
@@ -125,6 +122,18 @@ export async function POST(request: Request) {
 
         if (pfCompletionStatus) pfPayload.completionStatus = pfCompletionStatus;
         if (pfFurnished) pfPayload.furnished = pfFurnished;
+
+        // Map amenities from local features JSONB
+        if (property.features && typeof property.features === 'object') {
+            const amenities = Object.keys(property.features).filter(k => 
+                property.features[k] === true && 
+                k !== 'listing_type' && 
+                k !== 'cheques'
+            );
+            if (amenities.length > 0) {
+                pfPayload.amenities = amenities;
+            }
+        }
 
         if (offeringType === 'rent') {
             pfPayload.price.amounts.yearly = priceNum;

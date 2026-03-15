@@ -222,14 +222,21 @@ export default function RentPropertyDetailPage() {
                     <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
                         <h2 className="text-lg font-bold text-neutral-900 mb-6">Top Amenities</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                            {AMENITIES.map((item) => (
-                                <div key={item.label} className="flex items-center gap-3">
+                            {Object.keys(property.features || {})
+                                .filter(k => property.features[k] === true && k !== 'listing_type' && k !== 'cheques')
+                                .map((amenity) => (
+                                <div key={amenity} className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-primary border border-neutral-100">
-                                        <item.icon size={20} />
+                                        <Star size={20} />
                                     </div>
-                                    <span className="text-sm font-medium text-neutral-700">{item.label}</span>
+                                    <span className="text-sm font-medium text-neutral-700">{amenity}</span>
                                 </div>
                             ))}
+                            {Object.keys(property.features || {})
+                                .filter(k => property.features[k] === true && k !== 'listing_type' && k !== 'cheques')
+                                .length === 0 && (
+                                <p className="text-sm text-neutral-500 col-span-2 sm:col-span-3">No amenities listed.</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -267,6 +274,12 @@ export default function RentPropertyDetailPage() {
                                 <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
                                     <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Furnishing</span>
                                     <span className="font-semibold text-neutral-900">{property.furnished}</span>
+                                </div>
+                            )}
+                            {property.features?.cheques && (
+                                <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                    <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Rent Cheques</span>
+                                    <span className="font-semibold text-neutral-900">{property.features.cheques} Cheques</span>
                                 </div>
                             )}
                             <div className="flex items-center justify-between text-sm py-2">
