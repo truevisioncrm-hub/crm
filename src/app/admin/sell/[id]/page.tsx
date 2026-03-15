@@ -23,6 +23,9 @@ interface Property {
     features: any;
     created_at: string;
     pf_listing_id?: string;
+    bua_sqft?: number;
+    completion_status?: string;
+    furnished?: string;
 }
 
 const AMENITIES = [
@@ -242,14 +245,32 @@ export default function PropertyDetailPage() {
                                 <span className="text-neutral-400 flex items-center gap-2"><Home size={14} /> Property Type</span>
                                 <span className="font-semibold text-neutral-900 capitalize">{property.property_type}</span>
                             </div>
-                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-50">
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
                                 <span className="text-neutral-400 flex items-center gap-2"><Clock size={14} /> Added On</span>
                                 <span className="font-semibold text-neutral-900">{new Date(property.created_at).toLocaleDateString()}</span>
                             </div>
-                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-50">
-                                <span className="text-neutral-400 flex items-center gap-2"><Maximize size={14} /> Carpet Area</span>
-                                <span className="font-semibold text-neutral-900">{property.area_sqft} sqft</span>
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                <span className="text-neutral-400 flex items-center gap-2"><Maximize size={14} /> Plot Area</span>
+                                <span className="font-semibold text-neutral-900">{property.area_sqft || 0} sqft</span>
                             </div>
+                            {property.bua_sqft && (
+                                <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                    <span className="text-neutral-400 flex items-center gap-2"><Maximize size={14} /> Built-up Area</span>
+                                    <span className="font-semibold text-neutral-900">{property.bua_sqft} sqft</span>
+                                </div>
+                            )}
+                            {property.completion_status && (
+                                <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                    <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Completion</span>
+                                    <span className="font-semibold text-neutral-900">{property.completion_status}</span>
+                                </div>
+                            )}
+                            {property.furnished && (
+                                <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                    <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Furnishing</span>
+                                    <span className="font-semibold text-neutral-900">{property.furnished}</span>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between text-sm py-2">
                                 <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> DLD Reference</span>
                                 <span className="font-semibold text-neutral-900 uppercase">Applied</span>

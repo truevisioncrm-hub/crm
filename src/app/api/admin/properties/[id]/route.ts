@@ -70,7 +70,13 @@ export async function PATCH(
         }
 
         // Strip type if it exists in payload as it's not a real column
-        const { type, ...dbPayload } = payload
+        const { type, completion_status, furnished, bua_sqft, payment_plan, ...restPayload } = payload
+        const dbPayload: any = { ...restPayload };
+
+        if (completion_status !== undefined) dbPayload.completion_status = completion_status;
+        if (furnished !== undefined) dbPayload.furnished = furnished;
+        if (bua_sqft !== undefined) dbPayload.bua_sqft = bua_sqft;
+        if (payment_plan !== undefined) dbPayload.payment_plan = payment_plan;
 
         const { data, error } = await supabase
             .from("properties")

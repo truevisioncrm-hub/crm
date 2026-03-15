@@ -32,6 +32,10 @@ interface Property {
     baths: number;
     area_sqft: number;
     status: string;
+    bua_sqft: number;
+    completion_status: string;
+    furnished: string;
+    payment_plan: any;
     property_type: string;
 }
 
@@ -79,9 +83,12 @@ export default function RentInventoryPage() {
             type: "Rent",
             property_type: formData.get("property_type") as string,
             area_sqft: Number(formData.get("area_sqft")) || null,
+            bua_sqft: Number(formData.get("bua_sqft")) || null,
             bedrooms: Number(formData.get("bedrooms")) || null,
             bathrooms: Number(formData.get("bathrooms")) || null,
             status: formData.get("status") as string || "available",
+            completion_status: formData.get("completion_status") as string || "Completed",
+            furnished: formData.get("furnished") as string || "Unfurnished",
             description: formData.get("description") as string || null,
         };
 
@@ -260,11 +267,15 @@ export default function RentInventoryPage() {
                                             )}
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Area (sqft)</label>
+                                            <label className="text-xs font-medium text-neutral-700">Plot Area (sqft)</label>
                                             <input name="area_sqft" type="number" placeholder="e.g. 900" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
                                         </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-medium text-neutral-700">BUA (sqft)</label>
+                                            <input name="bua_sqft" type="number" placeholder="e.g. 750" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-medium text-neutral-700">Bedrooms</label>
                                             <select name="bedrooms" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
@@ -292,6 +303,21 @@ export default function RentInventoryPage() {
                                                 <option value="available">Available</option>
                                                 <option value="reserved">Reserved</option>
                                                 <option value="unlisted">Rented Out</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-medium text-neutral-700">Completion</label>
+                                            <select name="completion_status" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
+                                                <option value="Completed">Ready / Completed</option>
+                                                <option value="Off-plan">Off-plan</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-medium text-neutral-700">Furnishing</label>
+                                            <select name="furnished" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
+                                                <option value="Unfurnished">Unfurnished</option>
+                                                <option value="Partly Furnished">Partly Furnished</option>
+                                                <option value="Furnished">Furnished</option>
                                             </select>
                                         </div>
                                     </div>

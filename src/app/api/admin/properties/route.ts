@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const payload = await request.json()
+        const body = await request.json()
         const supabase = await createClient()
 
         // Auth check
@@ -67,15 +67,40 @@ export async function POST(request: Request) {
         }
 
         // The 'type' field (Sell/Rent) is stored inside features JSON
-        const { type, ...dbPayload } = payload
-        const features = dbPayload.features || {}
+        const {
+            title, location, price, type, bedrooms, bathrooms, area_sqft, status, description, property_type,
+            completion_status, furnished, bua_sqft, payment_plan
+        } = body;
+
+        // Basic validation
+        if (!title || !location || !price || !type) {
+            return NextResponse.json({ error: "Missing required fields: title, location, price, type" }, { status: 400 })
+        }
+
+        const features = body.features || {}
         if (type) {
             features.listing_type = type
         }
 
         const { data, error } = await supabase
             .from("properties")
-            .insert([{ ...dbPayload, features, org_id: profile.org_id }])
+            .insert([{
+                title,
+                location,
+                price,
+                bedrooms,
+                bathrooms,
+                area_sqft,
+                org_id: profile.org_id,
+                features,
+                status: status || 'available',
+                description: description || null,
+                property_type: property_type || null,
+                completion_status: completion_status || null,
+                furnished: furnished || null,
+                bua_sqft: bua_sqft || null,
+                payment_plan: payment_plan || null,
+            }])
             .select()
             .single()
 

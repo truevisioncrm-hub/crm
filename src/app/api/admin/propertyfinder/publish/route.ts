@@ -92,6 +92,19 @@ export async function POST(request: Request) {
             ? String(property.bathrooms)
             : '1';
 
+        // Map completing status correctly to PF spec
+        let pfCompletionStatus = undefined;
+        if (property.completion_status) {
+            pfCompletionStatus = property.completion_status.toLowerCase() === 'off-plan' ? 'off_plan' : 'completed';
+        }
+
+        // Map furnished status correctly to PF spec
+        let pfFurnished = undefined;
+        if (property.furnished) {
+            pfFurnished = property.furnished.toLowerCase();
+            if (pfFurnished === 'partly furnished') pfFurnished = 'partly';
+        }
+
         const pfPayload: any = {
             title: { en: property.title || `${property.property_type} in ${property.location}` },
             description: { en: property.description || "No description provided." },
@@ -104,11 +117,14 @@ export async function POST(request: Request) {
             offeringType: offeringType,
             bedrooms: bedroomsStr,
             bathrooms: bathroomsStr,
-            size: property.area_sqft ? Number(property.area_sqft) : 0,
+            size: property.bua_sqft ? Number(property.bua_sqft) : (property.area_sqft ? Number(property.area_sqft) : 0),
             location: { id: pfLocationId },
             reference: `TV-${property.id.substring(0, 8).toUpperCase()}`,
             availableFrom: new Date().toISOString().split('T')[0]
         };
+
+        if (pfCompletionStatus) pfPayload.completionStatus = pfCompletionStatus;
+        if (pfFurnished) pfPayload.furnished = pfFurnished;
 
         if (offeringType === 'rent') {
             pfPayload.price.amounts.yearly = priceNum;

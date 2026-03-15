@@ -21,6 +21,9 @@ interface Property {
     description: string;
     images: string[];
     features: any;
+    bua_sqft?: number;
+    completion_status?: string;
+    furnished?: string;
     created_at: string;
     pf_listing_id?: string;
 }
@@ -244,10 +247,28 @@ export default function RentPropertyDetailPage() {
                                 <span className="text-neutral-400 flex items-center gap-2"><Clock size={14} /> Available From</span>
                                 <span className="font-semibold text-neutral-900">Immediate</span>
                             </div>
-                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-50">
-                                <span className="text-neutral-400 flex items-center gap-2"><Maximize size={14} /> Carpet Area</span>
-                                <span className="font-semibold text-neutral-900">{property.area_sqft} sqft</span>
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                <span className="text-neutral-400 flex items-center gap-2"><Maximize size={14} /> Plot Area</span>
+                                <span className="font-semibold text-neutral-900">{property.area_sqft || 0} sqft</span>
                             </div>
+                            {property.bua_sqft && (
+                                <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                    <span className="text-neutral-400 flex items-center gap-2"><Maximize size={14} /> Built-up Area</span>
+                                    <span className="font-semibold text-neutral-900">{property.bua_sqft} sqft</span>
+                                </div>
+                            )}
+                            {property.completion_status && (
+                                <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                    <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Completion</span>
+                                    <span className="font-semibold text-neutral-900">{property.completion_status}</span>
+                                </div>
+                            )}
+                            {property.furnished && (
+                                <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-100">
+                                    <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Furnishing</span>
+                                    <span className="font-semibold text-neutral-900">{property.furnished}</span>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between text-sm py-2">
                                 <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Security Deposit</span>
                                 <span className="font-semibold text-neutral-900">5% Annual Rent</span>
