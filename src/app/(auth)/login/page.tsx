@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Building2, UserCircle, Lock } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 import { useAuth } from "@/lib/auth";
 
 export default function LoginPage() {
-    const { login } = useAuth();
-    const [role, setRole] = useState<'admin' | 'agent'>('admin');
-    const [showPassword, setShowPassword] = useState(false);
+    const { user, loading } = useAuth();
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -19,29 +21,39 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const res = await login(email, password);
-            if (!res.success) {
-                setError(res.error || "Invalid credentials");
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || result.error) {
+                setError(result.error || "Login failed");
                 setIsLoading(false);
+                return;
             }
-            // Redirect is handled in auth provider on success
+
+            if (result.success) {
+                const role = result.user?.role;
+                if (!role) {
+                    setError("Your account does not have an assigned role yet. Please contact an admin.");
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Force a hard navigation so the app completely re-initializes 
+                // and the Supabase client picks up the new HTTP-only auth cookies
+                window.location.href = role === "admin" ? "/admin/dashboard" : "/agent/dashboard";
+            }
         } catch (err) {
             setError("Something went wrong");
             setIsLoading(false);
         }
     };
 
-    const handleDemoLogin = (demoRole: 'admin' | 'agent') => {
-        setRole(demoRole);
-        setError("");
-        if (demoRole === 'admin') {
-            setEmail('admin@truevision.com');
-            setPassword('admin123');
-        } else {
-            setEmail('agent@truevision.com');
-            setPassword('agent123');
-        }
-    };
+    // We rely entirely on the real auth state now
 
     return (
         <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-neutral-50 animate-fade-in">
@@ -86,28 +98,6 @@ export default function LoginPage() {
                         </div>
                         <h2 className="text-3xl font-bold text-neutral-900">Welcome Back</h2>
                         <p className="text-neutral-500 mt-2">Please sign in to your account</p>
-                    </div>
-
-                    {/* Role Switcher */}
-                    <div className="grid grid-cols-2 gap-2 p-1 bg-neutral-100 rounded-2xl">
-                        <button
-                            onClick={() => setRole('admin')}
-                            className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${role === 'admin'
-                                    ? 'bg-white text-primary shadow-sm card-shadow'
-                                    : 'text-neutral-500 hover:text-neutral-700'
-                                }`}
-                        >
-                            <Building2 size={16} /> Admin
-                        </button>
-                        <button
-                            onClick={() => setRole('agent')}
-                            className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${role === 'agent'
-                                    ? 'bg-white text-primary shadow-sm card-shadow'
-                                    : 'text-neutral-500 hover:text-neutral-700'
-                                }`}
-                        >
-                            <UserCircle size={16} /> Agent
-                        </button>
                     </div>
 
                     {/* Form */}
@@ -171,33 +161,6 @@ export default function LoginPage() {
                             )}
                         </button>
                     </form>
-
-                    {/* Quick Demo Login */}
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-neutral-200"></div>
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-neutral-50 px-2 text-neutral-400 font-bold tracking-wider">Quick Demo Access</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <button
-                            type="button"
-                            onClick={() => handleDemoLogin('admin')}
-                            className="py-3 px-4 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-600 hover:border-primary hover:text-primary transition-all shadow-sm hover:shadow-md"
-                        >
-                            Affiliate Admin
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleDemoLogin('agent')}
-                            className="py-3 px-4 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-600 hover:border-primary hover:text-primary transition-all shadow-sm hover:shadow-md"
-                        >
-                            Sample Agent
-                        </button>
-                    </div>
 
                 </div>
             </div>

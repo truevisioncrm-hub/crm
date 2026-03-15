@@ -1,153 +1,271 @@
 "use client";
 
-import { ArrowLeft, Phone, MessageSquare, MapPin, IndianRupee, Home, Calendar, Clock, AlertCircle, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Phone, MessageSquare, MapPin, IndianRupee, Home, Calendar, Clock, User, FileText, Edit, Share2, CheckCircle2, XCircle, PhoneCall, Eye, Navigation, Mail, Bell, ArrowRightLeft, Zap, BedDouble, Bath, Maximize, Loader2, Plus } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 
-const LEADS = [
-    { id: 1, name: "Ahmed Khan", phone: "+91 98765 43210", email: "ahmed@email.com", source: "Facebook", budget: "₹10-15L", type: "2BHK", status: "New", statusColor: "bg-primary-light text-primary", progress: 10, alert: "No contact yet — respond ASAP", location: "Whitefield", date: "Feb 12, 2026" },
-    { id: 2, name: "Sara Mirza", phone: "+91 87654 32109", email: "sara@email.com", source: "Website", budget: "₹20-30L", type: "3BHK", status: "Contacted", statusColor: "bg-warning-light text-warning", progress: 35, alert: "", location: "Koramangala", date: "Feb 10, 2026" },
-    { id: 3, name: "Ravi Patel", phone: "+91 76543 21098", email: "ravi@email.com", source: "99acres", budget: "₹8-12L", type: "2BHK", status: "Site Visit", statusColor: "bg-info-light text-info", progress: 55, alert: "Visit scheduled today", location: "HSR Layout", date: "Feb 8, 2026" },
-    { id: 4, name: "Priya Kapoor", phone: "+91 65432 10987", email: "priyak@email.com", source: "Referral", budget: "₹15-20L", type: "2BHK", status: "Negotiation", statusColor: "bg-accent-light text-accent", progress: 75, alert: "", location: "Indiranagar", date: "Feb 5, 2026" },
-    { id: 5, name: "Mohan Singh", phone: "+91 54321 09876", email: "mohan@email.com", source: "WhatsApp", budget: "₹25-35L", type: "3BHK", status: "Closed Won", statusColor: "bg-success-light text-success", progress: 100, alert: "", location: "Electronic City", date: "Feb 2, 2026" },
-];
+interface Agent {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+}
 
-const ACTIVITY = [
-    { action: "Lead assigned to you", time: "3 days ago", type: "primary" },
-    { action: "First call attempted — no answer", time: "2 days ago", type: "warning" },
-    { action: "Follow-up call — client interested in 2BHK Whitefield", time: "1 day ago", type: "success" },
-    { action: "Site visit scheduled at Prestige Lakeside", time: "5 hours ago", type: "info" },
-];
+interface Lead {
+    id: string;
+    name: string;
+    email: string | null;
+    source: string;
+    budget: string;
+    status: string;
+    property_type: string;
+    priority: string;
+    phone: string;
+    location: string;
+    agent_id: string | null;
+    created_at: string;
+    users?: Agent | null; 
+}
 
-const NOTES = [
-    { text: "Client prefers east-facing flat with good ventilation. Budget is slightly flexible for a gated community.", time: "1 day ago" },
-    { text: "Sent Prestige Lakeside brochure via WhatsApp. Client confirmed receipt.", time: "2 days ago" },
-];
+interface LeadActivity {
+    id: string;
+    lead_id: string;
+    action: string;
+    detail: string | null;
+    type: string;
+    agent_id: string | null;
+    created_at: string;
+    users?: Agent | null;
+}
 
-const SITE_VISITS = [
-    { property: "Prestige Lakeside Villa", location: "Whitefield", date: "Tomorrow, 3:00 PM", status: "Scheduled" },
-];
+const statusStyles: Record<string, string> = {
+    "New Lead": "bg-blue-50 text-blue-600 border-blue-100",
+    "Contacted": "bg-amber-50 text-amber-600 border-amber-100",
+    "Site Visit": "bg-violet-50 text-violet-600 border-violet-100",
+    "Negotiation": "bg-pink-50 text-pink-600 border-pink-100",
+    "Closed Won": "bg-emerald-50 text-emerald-600 border-emerald-100",
+    "Follow-up": "bg-cyan-50 text-cyan-600 border-cyan-100",
+};
 
-const progressColor = (p: number) => p < 30 ? "bg-primary" : p < 60 ? "bg-warning" : p < 100 ? "bg-accent" : "bg-success";
-const activityDot: Record<string, string> = { success: "bg-success", info: "bg-info", warning: "bg-warning", primary: "bg-primary" };
+const timelineIconMap: Record<string, React.ElementType> = {
+    created: Zap,
+    assigned: ArrowRightLeft,
+    notification: Bell,
+    call: PhoneCall,
+    "call-success": Phone,
+    message: MessageSquare,
+    status: CheckCircle2,
+    note: FileText,
+    view: Eye,
+    visit: Calendar,
+};
+
+const timelineIconColors: Record<string, { bg: string; text: string }> = {
+    created: { bg: "bg-primary/10", text: "text-primary" },
+    assigned: { bg: "bg-violet-100", text: "text-violet-600" },
+    notification: { bg: "bg-amber-100", text: "text-amber-600" },
+    call: { bg: "bg-red-100", text: "text-red-500" },
+    "call-success": { bg: "bg-emerald-100", text: "text-emerald-600" },
+    message: { bg: "bg-blue-100", text: "text-blue-600" },
+    status: { bg: "bg-emerald-100", text: "text-emerald-600" },
+    note: { bg: "bg-neutral-100", text: "text-neutral-600" },
+    view: { bg: "bg-sky-100", text: "text-sky-600" },
+    visit: { bg: "bg-violet-100", text: "text-violet-600" },
+};
+
+const priorityColors: Record<string, string> = { High: "bg-red-500", Medium: "bg-amber-400", Low: "bg-neutral-300" };
+const PIPELINE_STAGES = ["New Lead", "Contacted", "Site Visit", "Negotiation", "Closed Won", "Follow-up"];
 
 export default function AgentLeadDetailPage() {
     const router = useRouter();
     const params = useParams();
-    const lead = LEADS.find((l) => l.id === Number(params.id)) || LEADS[0];
+    const leadId = params.id as string;
+
+    const [lead, setLead] = useState<Lead | null>(null);
+    const [activities, setActivities] = useState<LeadActivity[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [newNote, setNewNote] = useState("");
+    const [isSavingNote, setIsSavingNote] = useState(false);
+
+    useEffect(() => {
+        if (!leadId) return;
+        fetchData();
+    }, [leadId]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/leads/${leadId}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            if (data.lead) setLead(data.lead);
+            if (data.activities) setActivities(data.activities);
+        } catch (err: any) {
+            console.error("Fetch Lead Detail Error:", err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddNote = async () => {
+        if (!newNote.trim()) return;
+        setIsSavingNote(true);
+
+        try {
+            const response = await fetch(`/api/leads/${leadId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ note: newNote }),
+            });
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error);
+
+            setActivities([data, ...activities]);
+            setNewNote("");
+        } catch (err: any) {
+            console.error("Add Note Error:", err.message);
+        } finally {
+            setIsSavingNote(false);
+        }
+    };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
+    }
+
+    if (!lead) {
+        return (
+            <div className="flex flex-col justify-center items-center h-[70vh] gap-4">
+                <XCircle className="w-12 h-12 text-neutral-300" />
+                <h2 className="text-xl font-bold text-neutral-700">Lead not found</h2>
+                <button onClick={() => router.back()} className="text-sm font-semibold text-primary hover:underline">Return to list</button>
+            </div>
+        );
+    }
+
+    const currentStageIdx = PIPELINE_STAGES.indexOf(lead.status) > -1 ? PIPELINE_STAGES.indexOf(lead.status) : 0;
+    const progress = Math.max(10, Math.round(((currentStageIdx + 1) / PIPELINE_STAGES.length) * 100));
+    const notesOnly = activities.filter(a => a.type === "note");
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-xs text-neutral-400 hover:text-neutral-800 transition-colors">
-                <ArrowLeft size={14} /> Back to My Leads
+        <div className="space-y-6 animate-fade-in pb-12">
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-800 transition-colors font-medium w-max">
+                <ArrowLeft size={16} /> Back to My Leads
             </button>
 
-            <div className="p-5 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                <div className="flex items-start justify-between">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-lg font-bold text-neutral-900">{lead.name}</h1>
-                            <span className={`px-2 py-0.5 text-[10px] font-bold ${lead.statusColor}`}>{lead.status}</span>
+            {/* Hero Card */}
+            <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm relative overflow-hidden">
+                <div className={`absolute top-0 left-0 right-0 h-1 ${priorityColors[lead.priority] || "bg-neutral-300"} opacity-60`} />
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pt-2">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-lg font-bold text-primary border border-primary/10 shrink-0">
+                            {lead.name.charAt(0)}
                         </div>
-                        <div className="flex items-center gap-4 mt-2 flex-wrap">
-                            <span className="text-xs text-neutral-500 flex items-center gap-1"><Phone size={11} />{lead.phone}</span>
-                            <span className="text-xs text-neutral-500 flex items-center gap-1"><MessageSquare size={11} />{lead.email}</span>
-                            <span className="text-xs text-neutral-500 flex items-center gap-1"><MapPin size={11} />{lead.location}</span>
-                            <span className="text-xs text-neutral-400 flex items-center gap-1"><Calendar size={11} />{lead.date}</span>
-                        </div>
-                        {lead.alert && (
-                            <div className="flex items-center gap-1.5 mt-3 text-xs text-danger font-medium">
-                                <AlertCircle size={12} />{lead.alert}
+                        <div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h1 className="text-xl font-bold text-neutral-900">{lead.name}</h1>
+                                <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${statusStyles[lead.status] || "bg-neutral-50 text-neutral-600"}`}>{lead.status}</span>
                             </div>
-                        )}
+                            <div className="flex items-center gap-4 mt-2 flex-wrap">
+                                <span className="text-xs text-neutral-500 flex items-center gap-1"><Phone size={12} />{lead.phone}</span>
+                                <span className="text-xs text-neutral-500 flex items-center gap-1"><MapPin size={12} />{lead.location}</span>
+                                <span className="text-xs text-neutral-400 flex items-center gap-1"><Calendar size={12} />{new Date(lead.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-success hover:opacity-90 transition-opacity">
+                    <div className="flex gap-2">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20">
                             <Phone size={14} /> Call
                         </button>
-                        <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-primary hover:opacity-90 transition-opacity">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20">
                             <MessageSquare size={14} /> Message
                         </button>
                     </div>
                 </div>
+
+                {/* Pipeline Progress */}
+                <div className="mt-6 pt-5 border-t border-neutral-100">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Pipeline Progress</span>
+                        <span className="text-xs font-bold text-primary">{progress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden mb-3">
+                        <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                    </div>
+                </div>
             </div>
 
+            {/* Info Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: "Budget", value: lead.budget, icon: IndianRupee, color: "text-success" },
-                    { label: "Property Type", value: lead.type, icon: Home, color: "text-primary" },
-                    { label: "Source", value: lead.source, icon: FileText, color: "text-info" },
-                    { label: "Progress", value: `${lead.progress}%`, icon: Clock, color: "text-accent" },
+                    { label: "Budget", value: lead.budget, icon: IndianRupee, color: "text-emerald-500", bg: "bg-emerald-50" },
+                    { label: "Property Type", value: lead.property_type, icon: Home, color: "text-primary", bg: "bg-primary/5" },
+                    { label: "Source", value: lead.source, icon: FileText, color: "text-blue-500", bg: "bg-blue-50" },
+                    { label: "Priority", value: lead.priority, icon: Zap, color: "text-amber-500", bg: "bg-amber-50" },
                 ].map((info) => {
                     const Icon = info.icon;
                     return (
-                        <div key={info.label} className="p-5 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                            <Icon size={16} className={`${info.color} mb-2`} strokeWidth={1.5} />
-                            <p className="text-sm font-bold text-neutral-900">{info.value}</p>
-                            <p className="text-[10px] text-neutral-400 uppercase tracking-wider mt-0.5">{info.label}</p>
+                        <div key={info.label} className="bg-white rounded-2xl border border-neutral-100 p-5 shadow-sm">
+                            <Icon size={16} className={`${info.color} mb-3`} strokeWidth={2} />
+                            <p className="text-sm font-bold text-neutral-900 truncate">{info.value}</p>
+                            <p className="text-xs text-neutral-400 uppercase tracking-wider mt-1">{info.label}</p>
                         </div>
                     );
                 })}
             </div>
 
-            <div className="p-4 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Lead Progress</span>
-                    <span className="text-xs font-bold text-neutral-800">{lead.progress}%</span>
-                </div>
-                <div className="h-2 w-full bg-neutral-100">
-                    <div className={`h-full ${progressColor(lead.progress)} opacity-60 transition-all`} style={{ width: `${lead.progress}%` }} />
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                    {["New", "Contacted", "Site Visit", "Negotiation", "Closed"].map((stage) => (
-                        <span key={stage} className="text-[9px] text-neutral-400">{stage}</span>
-                    ))}
-                </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                <div className="lg:col-span-2 p-5 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                    <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">Activity Timeline</h3>
-                    <div className="space-y-4">
-                        {ACTIVITY.map((act, i) => (
-                            <div key={i} className="flex gap-3">
-                                <div className="flex flex-col items-center">
-                                    <div className={`w-2 h-2 ${activityDot[act.type]} shrink-0 mt-1`} />
-                                    {i < ACTIVITY.length - 1 && <div className="w-px flex-1 bg-card-border mt-1" />}
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm flex flex-col max-h-[600px]">
+                    <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-5">Activity Timeline</h3>
+                    <div className="space-y-0.5 overflow-y-auto pr-1 flex-1 custom-scrollbar">
+                        {activities.map((act, i) => {
+                            const Icon = timelineIconMap[act.type] || FileText;
+                            const colors = timelineIconColors[act.type] || { bg: "bg-neutral-100", text: "text-neutral-500" };
+                            return (
+                                <div key={act.id} className="flex gap-3 group">
+                                    <div className="flex flex-col items-center pt-0.5">
+                                        <div className={`w-7 h-7 rounded-lg ${colors.bg} flex items-center justify-center shrink-0`}>
+                                            <Icon size={13} className={colors.text} />
+                                        </div>
+                                        {i < activities.length - 1 && <div className="w-px flex-1 bg-neutral-100 mt-1 min-h-[16px]" />}
+                                    </div>
+                                    <div className="pb-5 flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-neutral-800 leading-snug">{act.action}</p>
+                                        {act.detail && <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{act.detail}</p>}
+                                        <p className="text-[10px] text-neutral-400 mt-1">{new Date(act.created_at).toLocaleString()}</p>
+                                    </div>
                                 </div>
-                                <div className="pb-4">
-                                    <p className="text-xs text-neutral-700">{act.action}</p>
-                                    <p className="text-[10px] text-neutral-400 mt-0.5 flex items-center gap-1"><Clock size={8} />{act.time}</p>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 
-                <div className="lg:col-span-3 p-5 space-y-6 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                    <div>
-                        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">Notes</h3>
-                        <div className="space-y-3">
-                            {NOTES.map((note, i) => (
-                                <div key={i} className="p-3 bg-neutral-50" style={{ border: "1px solid var(--card-border)" }}>
-                                    <p className="text-xs text-neutral-700 leading-relaxed">{note.text}</p>
-                                    <p className="text-[10px] text-neutral-400 mt-2">{note.time}</p>
-                                </div>
-                            ))}
+                <div className="lg:col-span-3 space-y-4">
+                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm flex flex-col max-h-[600px]">
+                        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-5">Internal Notes</h3>
+                        <div className="mb-6 relative">
+                            <textarea
+                                value={newNote}
+                                onChange={(e) => setNewNote(e.target.value)}
+                                placeholder="Add a note about this lead..."
+                                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none min-h-[100px]"
+                            />
+                            <div className="flex justify-end mt-2">
+                                <button onClick={handleAddNote} disabled={!newNote.trim() || isSavingNote} className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                                    {isSavingNote ? <Loader2 size={12} className="animate-spin" /> : <Plus size={14} />}
+                                    Save Note
+                                </button>
+                            </div>
                         </div>
-                    </div>
-
-                    <div>
-                        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">Site Visits</h3>
-                        <div className="space-y-2">
-                            {SITE_VISITS.map((visit, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 bg-neutral-50" style={{ border: "1px solid var(--card-border)" }}>
-                                    <div>
-                                        <p className="text-xs font-medium text-neutral-800">{visit.property}</p>
-                                        <p className="text-[10px] text-neutral-400 mt-0.5 flex items-center gap-1"><MapPin size={8} />{visit.location}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-neutral-400">{visit.date}</p>
-                                        <span className="text-[10px] font-bold text-success">{visit.status}</span>
+                        <div className="space-y-3 overflow-y-auto flex-1 custom-scrollbar pr-1">
+                            {notesOnly.map((note) => (
+                                <div key={note.id} className="p-4 bg-neutral-50 rounded-xl border border-neutral-100 relative">
+                                    <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">{note.detail}</p>
+                                    <div className="flex items-center gap-2 mt-3">
+                                        <span className="text-xs text-neutral-500 font-medium">{note.users?.name || "Me"}</span>
+                                        <span className="text-neutral-300">•</span>
+                                        <span className="text-xs text-neutral-400">{new Date(note.created_at).toLocaleString()}</span>
                                     </div>
                                 </div>
                             ))}

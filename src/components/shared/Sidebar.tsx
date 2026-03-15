@@ -99,32 +99,6 @@ export default function Sidebar({ items, collapsed, onToggle }: SidebarProps) {
                 {/* Bottom Actions */}
                 <div className="mt-auto flex flex-col gap-1 w-full px-3 shrink-0">
                     <button
-                        className="group relative flex items-center gap-3 rounded-xl text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
-                        style={{
-                            padding: collapsed ? "12px" : "10px 12px",
-                            justifyContent: collapsed ? "center" : "flex-start",
-                            transition: TRANSITION,
-                        }}
-                    >
-                        <Settings size={22} strokeWidth={2} className="shrink-0" />
-                        <span
-                            className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                            style={{
-                                width: collapsed ? 0 : "auto",
-                                opacity: collapsed ? 0 : 1,
-                                transition: TRANSITION,
-                            }}
-                        >
-                            Settings
-                        </span>
-                        {collapsed && (
-                            <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[70]">
-                                Settings
-                            </div>
-                        )}
-                    </button>
-
-                    <button
                         onClick={logout}
                         className="group relative flex items-center gap-3 rounded-xl text-neutral-500 hover:bg-red-50 hover:text-red-600"
                         style={{

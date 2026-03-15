@@ -2,34 +2,19 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 export type UserRole = "admin" | "agent";
 
 export interface User {
     id: string;
+    org_id: string;
     name: string;
     email: string;
     role: UserRole;
     avatar?: string;
     area?: string;
 }
-
-// Mock users for demo
-const MOCK_USERS: Record<string, User> = {
-    "admin@truevision.com": {
-        id: "1",
-        name: "Shan Admin",
-        email: "admin@truevision.com",
-        role: "admin",
-    },
-    "agent@truevision.com": {
-        id: "2",
-        name: "Agent Rahul",
-        email: "agent@truevision.com",
-        role: "agent",
-        area: "Whitefield",
-    },
-};
 
 interface AuthContextType {
     user: User | null;
@@ -40,48 +25,129 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Move supabase outside to ensure it's a singleton and doesn't trigger effect re-runs
+const supabase = createClient();
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    // Hydrate user from localStorage after mount to avoid SSR mismatch
-    useEffect(() => {
-        const stored = localStorage.getItem("truevision_user");
-        if (stored) {
-            try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
+    const fetchAndSetUserProfile = useCallback(async (userId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (error) {
+                setUser(null);
+            } else if (data) {
+                setUser({
+                    id: data.id,
+                    org_id: data.org_id,
+                    email: data.email,
+                    name: data.full_name,
+                    role: data.role as UserRole,
+                    avatar: data.avatar_url,
+                    area: data.assigned_area
+                });
+            }
+        } catch {
+            // Profile fetch failed — user will remain null
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, []);
+
+    useEffect(() => {
+        let mounted = true;
+
+        async function initAuth() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session?.user) {
+                    if (mounted) await fetchAndSetUserProfile(session.user.id);
+                } else {
+                    if (mounted) {
+                        setUser(null);
+                        setLoading(false);
+                    }
+                }
+            } catch (err) {
+                // Auth init failed — user will remain null
+                if (mounted) {
+                    setUser(null);
+                    setLoading(false);
+                }
+            }
+        }
+
+        initAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (!mounted) return;
+
+            if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
+                // Fetch profile to ensure we have the latest role and data
+                await fetchAndSetUserProfile(session.user.id);
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null);
+                setLoading(false);
+            } else if (event === 'USER_UPDATED' && session?.user) {
+                await fetchAndSetUserProfile(session.user.id);
+            } else {
+                setLoading(false);
+            }
+        });
+
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
+    }, [fetchAndSetUserProfile]);
 
     const login = useCallback(async (email: string, password: string) => {
         setLoading(true);
-        // Simulate API delay
-        await new Promise((r) => setTimeout(r, 800));
+        try {
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
 
-        const mockUser = MOCK_USERS[email.toLowerCase()];
-        if (!mockUser || password.length < 4) {
+            const result = await response.json();
+
+            if (!response.ok || result.error) {
+                setLoading(false);
+                return { success: false, error: result.error || "Login failed" };
+            }
+
+            // The login was successful. Profile fetching will trigger via onAuthStateChange.
+            // We return success so the calling component can execute a hard redirect 
+            // to re-initialize the server session cookies properly.
+
+            return { success: true };
+        } catch (err) {
             setLoading(false);
-            return { success: false, error: "Invalid email or password" };
+            return { success: false, error: "Login failed" };
         }
-
-        setUser(mockUser);
-        localStorage.setItem("truevision_user", JSON.stringify(mockUser));
-        setLoading(false);
-
-        if (mockUser.role === "admin") {
-            router.push("/admin/dashboard");
-        } else {
-            router.push("/agent/dashboard");
-        }
-
-        return { success: true };
     }, [router]);
 
-    const logout = useCallback(() => {
-        setUser(null);
-        localStorage.removeItem("truevision_user");
-        router.push("/login");
+    const logout = useCallback(async () => {
+        setLoading(true);
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+            setUser(null);
+            router.refresh();
+            setLoading(false);
+            router.push("/login");
+        } catch (err) {
+            // Logout failed silently
+            setLoading(false);
+        }
     }, [router]);
 
     return (

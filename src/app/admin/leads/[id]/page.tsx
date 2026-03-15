@@ -1,53 +1,64 @@
 "use client";
 
-import { ArrowLeft, Phone, MessageSquare, MapPin, IndianRupee, Home, Calendar, Clock, User, FileText, Edit, Share2, CheckCircle2, XCircle, PhoneCall, Eye, Navigation, Mail, Bell, ArrowRightLeft, Zap, BedDouble, Bath, Maximize } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Phone, MessageSquare, MapPin, IndianRupee, Home, Calendar, Clock, User, FileText, Edit, Share2, CheckCircle2, XCircle, PhoneCall, Eye, Navigation, Mail, Bell, ArrowRightLeft, Zap, BedDouble, Bath, Maximize, Loader2, Plus } from "lucide-react";
+import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 
-const LEADS = [
-    { id: 1, name: "Ahmed Khan", phone: "+91 98765 43210", email: "ahmed@email.com", source: "Facebook", agent: "Arjun Mehta", budget: "₹10-15L", budgetMin: 10, budgetMax: 15, type: "2BHK", status: "New", statusColor: "bg-blue-50 text-blue-600 border-blue-100", priority: "high", location: "Whitefield", date: "Feb 12, 2026", progress: 15 },
-    { id: 2, name: "Sara Mirza", phone: "+91 87654 32109", email: "sara@email.com", source: "Website", agent: "Priya Singh", budget: "₹20-30L", budgetMin: 20, budgetMax: 30, type: "3BHK", status: "Contacted", statusColor: "bg-amber-50 text-amber-600 border-amber-100", priority: "medium", location: "Koramangala", date: "Feb 10, 2026", progress: 30 },
-    { id: 3, name: "Ravi Patel", phone: "+91 76543 21098", email: "ravi@email.com", source: "99acres", agent: "Arjun Mehta", budget: "₹8-12L", budgetMin: 8, budgetMax: 12, type: "2BHK", status: "Site Visit", statusColor: "bg-violet-50 text-violet-600 border-violet-100", priority: "high", location: "HSR Layout", date: "Feb 8, 2026", progress: 55 },
-    { id: 4, name: "Priya Kapoor", phone: "+91 65432 10987", email: "priyak@email.com", source: "Referral", agent: "Rahul Kumar", budget: "₹15-20L", budgetMin: 15, budgetMax: 20, type: "2BHK", status: "Negotiation", statusColor: "bg-pink-50 text-pink-600 border-pink-100", priority: "high", location: "Indiranagar", date: "Feb 5, 2026", progress: 75 },
-    { id: 5, name: "Mohan Singh", phone: "+91 54321 09876", email: "mohan@email.com", source: "WhatsApp", agent: "Sneha Patel", budget: "₹25-35L", budgetMin: 25, budgetMax: 35, type: "3BHK", status: "Closed Won", statusColor: "bg-emerald-50 text-emerald-600 border-emerald-100", priority: "low", location: "Electronic City", date: "Feb 2, 2026", progress: 100 },
-    { id: 6, name: "Karan M.", phone: "+91 43210 98765", email: "karan@email.com", source: "Facebook", agent: "Arjun Mehta", budget: "₹12-18L", budgetMin: 12, budgetMax: 18, type: "2BHK", status: "Contacted", statusColor: "bg-amber-50 text-amber-600 border-amber-100", priority: "medium", location: "Marathahalli", date: "Feb 11, 2026", progress: 30 },
-    { id: 7, name: "Neha R.", phone: "+91 32109 87654", email: "neha@email.com", source: "Website", agent: "Priya Singh", budget: "₹30-40L", budgetMin: 30, budgetMax: 40, type: "4BHK", status: "New", statusColor: "bg-blue-50 text-blue-600 border-blue-100", priority: "low", location: "Whitefield", date: "Feb 13, 2026", progress: 10 },
-    { id: 8, name: "Vijay K.", phone: "+91 21098 76543", email: "vijay@email.com", source: "99acres", agent: "Rahul Kumar", budget: "₹18-25L", budgetMin: 18, budgetMax: 25, type: "3BHK", status: "New", statusColor: "bg-blue-50 text-blue-600 border-blue-100", priority: "medium", location: "HSR Layout", date: "Feb 12, 2026", progress: 10 },
-];
+interface Agent {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+}
 
-// Full activity timeline with types for icons
-const FULL_TIMELINE = [
-    { action: "Lead created from Facebook campaign", detail: "Auto-captured from FB Lead Ad — Campaign: Whitefield Premium Homes", time: "Feb 12, 09:15 AM", type: "created", icon: Zap },
-    { action: "Auto-assigned to Arjun Mehta", detail: "Round-robin distribution — Agent had lowest active leads (12)", time: "Feb 12, 09:16 AM", type: "assigned", icon: ArrowRightLeft },
-    { action: "Assignment notification sent", detail: "Push notification + email sent to agent", time: "Feb 12, 09:16 AM", type: "notification", icon: Bell },
-    { action: "First call attempted — no answer", detail: "Agent tried calling, rang for 45 seconds. Marked as Ringing - No Response.", time: "Feb 12, 02:30 PM", type: "call", icon: PhoneCall },
-    { action: "SMS follow-up sent", detail: "Template: 'Hi {{name}}, we have exciting properties in {{location}}...'", time: "Feb 12, 02:35 PM", type: "message", icon: MessageSquare },
-    { action: "Follow-up call — Connected!", detail: "Call duration: 8 min 42 sec. Client interested in 2BHK, east-facing. Budget ₹10-15L.", time: "Feb 13, 10:00 AM", type: "call-success", icon: Phone },
-    { action: "Status changed: New → Contacted", detail: "Agent updated status after successful call", time: "Feb 13, 10:09 AM", type: "status", icon: CheckCircle2 },
-    { action: "Note added by Arjun Mehta", detail: "Client prefers east-facing apartment with gated community. Budget flexible up to ₹18L.", time: "Feb 13, 10:12 AM", type: "note", icon: FileText },
-    { action: "Brochure sent via WhatsApp", detail: "Prestige Lakeside Villa brochure — 4 pages, PDF", time: "Feb 13, 11:30 AM", type: "message", icon: Mail },
-    { action: "Client viewed brochure", detail: "Opened at 12:45 PM, viewed for 3 minutes", time: "Feb 13, 12:45 PM", type: "view", icon: Eye },
-    { action: "Site visit scheduled", detail: "Prestige Lakeside Villa, Whitefield — Tomorrow 3:00 PM", time: "Feb 14, 09:00 AM", type: "visit", icon: Calendar },
-    { action: "Reminder sent to client", detail: "WhatsApp reminder: Visit tomorrow at 3 PM at Prestige Lakeside Villa", time: "Feb 14, 06:00 PM", type: "notification", icon: Bell },
-];
+interface Lead {
+    id: string;
+    name: string;
+    email: string | null;
+    source: string;
+    budget: string;
+    status: string;
+    property_type: string;
+    priority: string;
+    phone: string;
+    location: string;
+    agent_id: string | null;
+    created_at: string;
+    users?: Agent | null; // Assigned agent
+}
 
-const NOTES = [
-    { text: "Client prefers east-facing apartment with gated community. Budget flexible up to ₹18L if property is premium.", author: "Arjun Mehta", time: "1 day ago" },
-    { text: "Requested brochure for Prestige Lakeside — sent via WhatsApp.", author: "Arjun Mehta", time: "2 days ago" },
-    { text: "Client also interested in nearby schools — family with 2 kids.", author: "Arjun Mehta", time: "2 days ago" },
-];
+interface LeadActivity {
+    id: string;
+    lead_id: string;
+    activity_type: string;
+    message: string | null;
+    metadata: any;
+    agent_id: string | null;
+    created_at: string;
+    users?: Agent | null; // Agent who did the action
+}
 
-const SITE_VISITS = [
-    { property: "Prestige Lakeside Villa", location: "Whitefield", date: "Tomorrow, 3:00 PM", status: "Scheduled", mapLink: "https://maps.google.com/?q=Whitefield+Bangalore" },
-    { property: "Godrej Platinum", location: "HSR Layout", date: "Feb 18, 11:00 AM", status: "Pending", mapLink: "https://maps.google.com/?q=HSR+Layout+Bangalore" },
-];
+const statusStyles: Record<string, string> = {
+    "New Lead": "bg-blue-50 text-blue-600 border-blue-100",
+    "Contacted": "bg-amber-50 text-amber-600 border-amber-100",
+    "Site Visit": "bg-violet-50 text-violet-600 border-violet-100",
+    "Negotiation": "bg-pink-50 text-pink-600 border-pink-100",
+    "Closed Won": "bg-emerald-50 text-emerald-600 border-emerald-100",
+    "Follow-up": "bg-cyan-50 text-cyan-600 border-cyan-100",
+};
 
-// Matching properties from inventory
-const MATCHING_PROPERTIES = [
-    { id: 1, title: "Prestige Lakeside Villa", location: "Whitefield", price: "₹14.5 L", type: "2BHK", beds: 2, baths: 2, area: "1,200", match: 95, agent: "Arjun Mehta" },
-    { id: 2, title: "Brigade Horizon", location: "Whitefield", price: "₹12.8 L", type: "2BHK", beds: 2, baths: 2, area: "1,150", match: 88, agent: "Priya Singh" },
-    { id: 3, title: "Sobha Dream Acres", location: "Panathur", price: "₹11.2 L", type: "2BHK", beds: 2, baths: 2, area: "1,100", match: 82, agent: "Arjun Mehta" },
-    { id: 4, title: "Godrej Platinum", location: "HSR Layout", price: "₹15.5 L", type: "2BHK", beds: 2, baths: 3, area: "1,350", match: 78, agent: "Rahul Kumar" },
-];
+const timelineIconMap: Record<string, React.ElementType> = {
+    created: Zap,
+    assigned: ArrowRightLeft,
+    notification: Bell,
+    call: PhoneCall,
+    "call-success": Phone,
+    message: MessageSquare,
+    status: CheckCircle2,
+    note: FileText,
+    view: Eye,
+    visit: Calendar,
+};
 
 const timelineIconColors: Record<string, { bg: string; text: string }> = {
     created: { bg: "bg-primary/10", text: "text-primary" },
@@ -62,63 +73,131 @@ const timelineIconColors: Record<string, { bg: string; text: string }> = {
     visit: { bg: "bg-violet-100", text: "text-violet-600" },
 };
 
-const priorityColors: Record<string, string> = { high: "bg-red-500", medium: "bg-amber-400", low: "bg-neutral-300" };
+const priorityColors: Record<string, string> = { High: "bg-red-500", Medium: "bg-amber-400", Low: "bg-neutral-300" };
 
-const PIPELINE_STAGES = ["New", "Contacted", "Site Visit", "Negotiation", "Documentation", "Closed Won"];
+const PIPELINE_STAGES = ["New Lead", "Contacted", "Site Visit", "Negotiation", "Closed Won", "Follow-up"];
 
 export default function LeadDetailPage() {
     const router = useRouter();
     const params = useParams();
-    const lead = LEADS.find((l) => l.id === Number(params.id)) || LEADS[0];
-    const currentStageIdx = PIPELINE_STAGES.indexOf(lead.status);
+    const leadId = params.id as string;
+
+    const [lead, setLead] = useState<Lead | null>(null);
+    const [activities, setActivities] = useState<LeadActivity[]>([]);
+    const [matchingProperties, setMatchingProperties] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Notes logic
+    const [newNote, setNewNote] = useState("");
+    const [isSavingNote, setIsSavingNote] = useState(false);
+
+    useEffect(() => {
+        if (!leadId) return;
+        fetchData();
+    }, [leadId]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/leads/${leadId}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            if (data.lead) setLead(data.lead);
+            if (data.properties) setMatchingProperties(data.properties);
+            if (data.activities) setActivities(data.activities);
+        } catch (err: any) {
+            console.error("Fetch Lead Detail Error:", err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddNote = async () => {
+        if (!newNote.trim()) return;
+        setIsSavingNote(true);
+
+        try {
+            const response = await fetch(`/api/leads/${leadId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ note: newNote }),
+            });
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error);
+
+            setActivities([data, ...activities]);
+            setNewNote("");
+        } catch (err: any) {
+            console.error("Add Note Error:", err.message);
+        } finally {
+            setIsSavingNote(false);
+        }
+    };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
+    }
+
+    if (!lead) {
+        return (
+            <div className="flex flex-col justify-center items-center h-[70vh] gap-4">
+                <XCircle className="w-12 h-12 text-neutral-300" />
+                <h2 className="text-xl font-bold text-neutral-700">Lead not found</h2>
+                <button onClick={() => router.back()} className="text-sm font-semibold text-primary hover:underline">Return to list</button>
+            </div>
+        );
+    }
+
+    const currentStageIdx = PIPELINE_STAGES.indexOf(lead.status) > -1 ? PIPELINE_STAGES.indexOf(lead.status) : 0;
+    const progress = Math.max(10, Math.round(((currentStageIdx + 1) / PIPELINE_STAGES.length) * 100));
+
+    // Filter true "notes" vs automatic timeline activities
+    const notesOnly = activities.filter(a => a.activity_type === "note");
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in pb-12">
             {/* Back Button */}
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-800 transition-colors font-medium">
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-800 transition-colors font-medium w-max">
                 <ArrowLeft size={16} /> Back to Leads
             </button>
 
             {/* Hero Card */}
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm relative overflow-hidden">
+                <div className={`absolute top-0 left-0 right-0 h-1 ${priorityColors[lead.priority] || "bg-neutral-300"} opacity-60`} />
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pt-2">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-lg font-bold text-primary border border-primary/10">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-lg font-bold text-primary border border-primary/10 shrink-0">
                             {lead.name.charAt(0)}
                         </div>
                         <div>
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h1 className="text-xl font-bold text-neutral-900">{lead.name}</h1>
-                                <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${lead.statusColor}`}>{lead.status}</span>
+                                <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${statusStyles[lead.status] || "bg-neutral-50 text-neutral-600"}`}>{lead.status}</span>
                                 <span className="flex items-center gap-1.5">
-                                    <span className={`w-2 h-2 rounded-full ${priorityColors[lead.priority]}`} />
+                                    <span className={`w-2 h-2 rounded-full ${priorityColors[lead.priority] || "bg-neutral-300"}`} />
                                     <span className="text-xs text-neutral-400 uppercase font-medium">{lead.priority} priority</span>
                                 </span>
                             </div>
                             <div className="flex items-center gap-4 mt-2 flex-wrap">
                                 <span className="text-xs text-neutral-500 flex items-center gap-1.5"><Phone size={12} />{lead.phone}</span>
-                                <span className="text-xs text-neutral-500 flex items-center gap-1.5"><Mail size={12} />{lead.email}</span>
+                                {lead.email && <span className="text-xs text-neutral-500 flex items-center gap-1.5"><Mail size={12} />{lead.email}</span>}
                                 <span className="text-xs text-neutral-500 flex items-center gap-1.5"><MapPin size={12} />{lead.location}</span>
-                                <span className="text-xs text-neutral-400 flex items-center gap-1.5"><Calendar size={12} />{lead.date}</span>
+                                <span className="text-xs text-neutral-400 flex items-center gap-1.5"><Calendar size={12} />{new Date(lead.created_at).toLocaleDateString()}</span>
                             </div>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button className="p-2.5 rounded-xl text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors border border-neutral-100"><Phone size={16} /></button>
-                        <button className="p-2.5 rounded-xl text-neutral-400 hover:text-primary hover:bg-primary/5 transition-colors border border-neutral-100"><MessageSquare size={16} /></button>
-                        <button className="p-2.5 rounded-xl text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors border border-neutral-100"><Share2 size={16} /></button>
-                        <button className="p-2.5 rounded-xl text-neutral-400 hover:text-amber-600 hover:bg-amber-50 transition-colors border border-neutral-100"><Edit size={16} /></button>
                     </div>
                 </div>
 
                 {/* Pipeline Progress */}
-                <div className="mt-5 pt-5 border-t border-neutral-100">
+                <div className="mt-6 pt-5 border-t border-neutral-100">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Pipeline Progress</span>
-                        <span className="text-xs font-bold text-primary">{lead.progress}%</span>
+                        <span className="text-xs font-bold text-primary">{progress}%</span>
                     </div>
                     <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden mb-3">
-                        <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${lead.progress}%` }} />
+                        <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                     </div>
                     <div className="flex items-center gap-1">
                         {PIPELINE_STAGES.map((stage, i) => {
@@ -126,7 +205,7 @@ export default function LeadDetailPage() {
                             const isCurrent = i === currentStageIdx;
                             return (
                                 <div key={stage} className="flex-1 flex items-center gap-1">
-                                    <div className={`flex-1 h-1.5 rounded-full transition-all ${isActive ? "bg-primary" : "bg-neutral-100"}`} />
+                                    <div className={`flex-1 h-1.5 rounded-full transition-all ${isActive ? "bg-primary" : "bg-neutral-200"}`} />
                                     {isCurrent && <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded whitespace-nowrap">{stage}</span>}
                                 </div>
                             );
@@ -139,8 +218,8 @@ export default function LeadDetailPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: "Budget", value: lead.budget, icon: IndianRupee, color: "text-emerald-500", bg: "bg-emerald-50" },
-                    { label: "Property Type", value: lead.type, icon: Home, color: "text-primary", bg: "bg-primary/5" },
-                    { label: "Assigned Agent", value: lead.agent, icon: User, color: "text-violet-500", bg: "bg-violet-50" },
+                    { label: "Property Type", value: lead.property_type, icon: Home, color: "text-primary", bg: "bg-primary/5" },
+                    { label: "Assigned Agent", value: lead.users?.full_name || "Unassigned", icon: User, color: "text-violet-500", bg: "bg-violet-50" },
                     { label: "Source", value: lead.source, icon: FileText, color: "text-blue-500", bg: "bg-blue-50" },
                 ].map((info) => {
                     const Icon = info.icon;
@@ -149,35 +228,77 @@ export default function LeadDetailPage() {
                             <div className={`w-9 h-9 ${info.bg} rounded-xl flex items-center justify-center mb-3`}>
                                 <Icon size={16} className={info.color} strokeWidth={2} />
                             </div>
-                            <p className="text-sm font-bold text-neutral-900">{info.value}</p>
+                            <p className="text-sm font-bold text-neutral-900 truncate">{info.value}</p>
                             <p className="text-xs text-neutral-400 uppercase tracking-wider mt-1">{info.label}</p>
                         </div>
                     );
                 })}
             </div>
 
+            {/* Matching Properties Target Deck */}
+            {matchingProperties.length > 0 && (
+                <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                            <Zap size={16} className="text-amber-500" /> Matching Inventory
+                        </h3>
+                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg uppercase tracking-wider">
+                            {matchingProperties.length} Matches Found
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {matchingProperties.map(prop => (
+                            <div key={prop.id} className="border border-neutral-100 rounded-xl p-4 flex flex-col hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all group bg-neutral-50/50">
+                                <div className="flex justify-between items-start mb-2 gap-2">
+                                    <h4 className="font-bold text-neutral-900 text-sm line-clamp-1 group-hover:text-primary transition-colors pr-2" title={prop.title}>{prop.title}</h4>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 shrink-0 uppercase tracking-widest border border-emerald-100">{prop.status}</span>
+                                </div>
+                                <p className="text-xs text-neutral-500 flex items-center gap-1.5 mb-4 truncate"><MapPin size={12} className="shrink-0 text-neutral-400" /> {prop.location}</p>
+                                <div className="mt-auto flex items-center justify-between pt-3 border-t border-neutral-200/50">
+                                    <span className="font-bold text-primary text-sm tracking-tight">{prop.price}</span>
+                                    <span className="text-[10px] font-bold text-neutral-500 uppercase bg-white px-2 py-1 rounded-md border border-neutral-200">{prop.type}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Activity Timeline + Notes/Visits */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                 {/* Full Activity Timeline */}
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm flex flex-col max-h-[700px]">
                     <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">Activity Timeline</h3>
-                    <p className="text-[10px] text-neutral-400 mb-5">{FULL_TIMELINE.length} events tracked</p>
-                    <div className="space-y-0.5 max-h-[600px] overflow-y-auto pr-1">
-                        {FULL_TIMELINE.map((act, i) => {
-                            const Icon = act.icon;
-                            const colors = timelineIconColors[act.type] || { bg: "bg-neutral-100", text: "text-neutral-500" };
+                    <p className="text-[10px] text-neutral-400 mb-5">{activities.length} events tracked</p>
+
+                    <div className="space-y-0.5 overflow-y-auto pr-1 flex-1 custom-scrollbar">
+                        {activities.length === 0 && <p className="text-sm text-neutral-400 text-center py-6">No activity recorded yet.</p>}
+
+                        {activities.map((act, i) => {
+                            const Icon = timelineIconMap[act.activity_type] || FileText;
+                            const colors = timelineIconColors[act.activity_type] || { bg: "bg-neutral-100", text: "text-neutral-500" };
                             return (
-                                <div key={i} className="flex gap-3 group">
-                                    <div className="flex flex-col items-center">
+                                <div key={act.id} className="flex gap-3 group">
+                                    <div className="flex flex-col items-center pt-0.5">
                                         <div className={`w-7 h-7 rounded-lg ${colors.bg} flex items-center justify-center shrink-0`}>
                                             <Icon size={13} className={colors.text} />
                                         </div>
-                                        {i < FULL_TIMELINE.length - 1 && <div className="w-px flex-1 bg-neutral-100 mt-1 min-h-[16px]" />}
+                                        {i < activities.length - 1 && <div className="w-px flex-1 bg-neutral-100 mt-1 min-h-[16px]" />}
                                     </div>
                                     <div className="pb-5 flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-neutral-800 leading-snug">{act.action}</p>
-                                        <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{act.detail}</p>
-                                        <p className="text-[10px] text-neutral-400 mt-1.5 flex items-center gap-1"><Clock size={9} />{act.time}</p>
+                                        <p className="text-sm font-semibold text-neutral-800 leading-snug">{act.activity_type}</p>
+                                        {act.message && <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{act.message}</p>}
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                            <p className="text-[10px] text-neutral-400 flex items-center gap-1">
+                                                <Clock size={9} />{new Date(act.created_at).toLocaleString()}
+                                            </p>
+                                            {act.users?.full_name && (
+                                                <>
+                                                    <span className="w-1 h-1 rounded-full bg-neutral-200" />
+                                                    <span className="text-[10px] text-neutral-500 font-medium">by {act.users.full_name}</span>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -185,95 +306,53 @@ export default function LeadDetailPage() {
                     </div>
                 </div>
 
-                {/* Notes + Site Visits */}
+                {/* Notes Block */}
                 <div className="lg:col-span-3 space-y-4">
-                    {/* Notes */}
-                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
+                    {/* Add Note Input & Notes List */}
+                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm flex flex-col max-h-[700px]">
                         <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Notes</h3>
-                            <button className="text-xs font-semibold text-primary hover:underline">+ Add Note</button>
+                            <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Internal Notes</h3>
                         </div>
-                        <div className="space-y-3">
-                            {NOTES.map((note, i) => (
-                                <div key={i} className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
-                                    <p className="text-sm text-neutral-700 leading-relaxed">{note.text}</p>
+
+                        {/* Input Area */}
+                        <div className="mb-6 relative">
+                            <textarea
+                                value={newNote}
+                                onChange={(e) => setNewNote(e.target.value)}
+                                placeholder="Add a note about this lead..."
+                                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none min-h-[100px] custom-scrollbar"
+                            />
+                            <div className="flex justify-end mt-2">
+                                <button
+                                    onClick={handleAddNote}
+                                    disabled={!newNote.trim() || isSavingNote}
+                                    className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                    {isSavingNote ? <Loader2 size={12} className="animate-spin" /> : <Plus size={14} />}
+                                    Save Note
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* List */}
+                        <div className="space-y-3 overflow-y-auto flex-1 custom-scrollbar pr-1">
+                            {notesOnly.length === 0 && <p className="text-sm text-neutral-400 text-center py-4">No internal notes added yet.</p>}
+
+                            {notesOnly.map((note) => (
+                                <div key={note.id} className="p-4 bg-neutral-50 rounded-xl border border-neutral-100 relative">
+                                    <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">{note.message}</p>
                                     <div className="flex items-center gap-2 mt-3">
-                                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold text-primary">{note.author.charAt(0)}</div>
-                                        <span className="text-xs text-neutral-500 font-medium">{note.author}</span>
-                                        <span className="text-neutral-300">•</span>
-                                        <span className="text-xs text-neutral-400">{note.time}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Site Visits with Google Maps */}
-                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Site Visits</h3>
-                            <button className="text-xs font-semibold text-primary hover:underline">+ Schedule Visit</button>
-                        </div>
-                        <div className="space-y-3">
-                            {SITE_VISITS.map((visit, i) => (
-                                <div key={i} className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl border border-neutral-100">
-                                    <div>
-                                        <p className="text-sm font-medium text-neutral-800">{visit.property}</p>
-                                        <p className="text-xs text-neutral-400 mt-1 flex items-center gap-1"><MapPin size={10} />{visit.location}</p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="text-right">
-                                            <p className="text-xs text-neutral-500">{visit.date}</p>
-                                            <span className={`text-xs font-bold ${visit.status === "Scheduled" ? "text-emerald-500" : "text-amber-500"}`}>{visit.status}</span>
+                                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold text-primary border border-primary/20 overflow-hidden">
+                                            {note.users?.avatar_url ? <Image src={note.users.avatar_url} alt="Avatar" width={24} height={24} className="w-full h-full object-cover" /> : (note.users?.full_name?.charAt(0) || "?")}
                                         </div>
-                                        <a href={visit.mapLink} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors" title="Open in Google Maps">
-                                            <Navigation size={14} />
-                                        </a>
+                                        <span className="text-xs text-neutral-500 font-medium">{note.users?.full_name || "System"}</span>
+                                        <span className="text-neutral-300">•</span>
+                                        <span className="text-xs text-neutral-400">{new Date(note.created_at).toLocaleString()}</span>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
-                </div>
-            </div>
-
-            {/* Matching Properties (Lead-to-Inventory) */}
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-lg font-bold text-neutral-900">Matching Properties</h3>
-                    <span className="text-xs text-neutral-400">Based on {lead.type} · {lead.budget} · {lead.location}</span>
-                </div>
-                <p className="text-xs text-neutral-400 mb-5">Auto-suggested properties matching this lead&apos;s requirements</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                    {MATCHING_PROPERTIES.map((prop) => (
-                        <div key={prop.id} className="border border-neutral-100 rounded-2xl p-4 hover:shadow-lg hover:border-primary/20 transition-all duration-300 relative group">
-                            {/* Match Badge */}
-                            <div className={`absolute top-3 right-3 px-2 py-0.5 rounded-lg text-[9px] font-bold ${prop.match >= 90 ? "bg-emerald-100 text-emerald-700" : prop.match >= 80 ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
-                                {prop.match}% match
-                            </div>
-
-                            {/* Image placeholder */}
-                            <div className="h-24 bg-neutral-100 rounded-xl mb-3 flex items-center justify-center">
-                                <Home size={24} className="text-neutral-300" />
-                            </div>
-
-                            <h4 className="text-sm font-bold text-neutral-900 mb-1 truncate">{prop.title}</h4>
-                            <p className="text-xs text-neutral-500 flex items-center gap-1 mb-2"><MapPin size={10} />{prop.location}</p>
-
-                            <p className="text-lg font-bold text-primary mb-3">{prop.price}</p>
-
-                            <div className="flex items-center gap-3 text-[10px] text-neutral-500 mb-3">
-                                <span className="flex items-center gap-1"><BedDouble size={10} />{prop.beds}</span>
-                                <span className="flex items-center gap-1"><Bath size={10} />{prop.baths}</span>
-                                <span className="flex items-center gap-1"><Maximize size={10} />{prop.area} sqft</span>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
-                                <span className="text-[10px] text-neutral-400 flex items-center gap-1"><User size={10} />{prop.agent}</span>
-                                <button className="text-[10px] font-bold text-primary hover:underline">View →</button>
-                            </div>
-                        </div>
-                    ))}
                 </div>
             </div>
         </div>

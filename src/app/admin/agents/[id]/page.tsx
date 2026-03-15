@@ -1,113 +1,182 @@
 "use client";
 
-import { ArrowLeft, MapPin, Phone, Mail, Target, TrendingUp, Users, Calendar, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, MapPin, Phone, Mail, Target, TrendingUp, Users, Calendar, Clock, Loader2, XCircle } from "lucide-react";
+import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 
-const AGENTS = [
-    { id: 1, name: "Arjun Mehta", status: "Online", leads: 12, closed: 4, rate: "85%", area: "Whitefield", phone: "+91 98765 43210", email: "arjun@truevision.com", joinDate: "Jan 2024" },
-    { id: 2, name: "Priya Singh", status: "Online", leads: 8, closed: 2, rate: "72%", area: "Koramangala", phone: "+91 87654 32109", email: "priya@truevision.com", joinDate: "Mar 2024" },
-    { id: 3, name: "Rahul Kumar", status: "Busy", leads: 15, closed: 5, rate: "78%", area: "HSR Layout", phone: "+91 76543 21098", email: "rahul@truevision.com", joinDate: "Feb 2024" },
-    { id: 4, name: "Sneha Patel", status: "Online", leads: 10, closed: 3, rate: "90%", area: "Indiranagar", phone: "+91 65432 10987", email: "sneha@truevision.com", joinDate: "Dec 2023" },
-    { id: 5, name: "Karan Verma", status: "Offline", leads: 5, closed: 2, rate: "92%", area: "Electronic City", phone: "+91 54321 09876", email: "karan@truevision.com", joinDate: "Apr 2024" },
-    { id: 6, name: "Anita Desai", status: "Online", leads: 9, closed: 4, rate: "88%", area: "Marathahalli", phone: "+91 43210 98765", email: "anita@truevision.com", joinDate: "Jan 2024" },
-];
+interface Agent {
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string | null;
+    assigned_area: string | null;
+    avatar_url: string | null;
+    created_at: string;
+    status: string;
+    liveStatus: string;
+}
 
-const ASSIGNED_LEADS = [
-    { name: "Ahmed Khan", budget: "₹10-15L", type: "2BHK", status: "New", statusColor: "bg-primary-light text-primary" },
-    { name: "Ravi Patel", budget: "₹8-12L", type: "2BHK", status: "Site Visit", statusColor: "bg-info-light text-info" },
-    { name: "Priya Kapoor", budget: "₹15-20L", type: "2BHK", status: "Negotiation", statusColor: "bg-accent-light text-accent" },
-    { name: "Mohan Singh", budget: "₹25-35L", type: "3BHK", status: "Closed Won", statusColor: "bg-success-light text-success" },
-];
+interface Lead {
+    id: string;
+    name: string;
+    budget: string;
+    status: string;
+    property_type: string;
+}
 
-const ACTIVITY = [
-    { action: "Closed deal with Mohan Singh", time: "2 hours ago", type: "success" },
-    { action: "Scheduled site visit for Ravi Patel", time: "5 hours ago", type: "info" },
-    { action: "Called Ahmed Khan", time: "1 day ago", type: "default" },
-    { action: "Updated Priya Kapoor status to Negotiation", time: "2 days ago", type: "accent" },
-    { action: "Added new lead — Sara Mirza", time: "3 days ago", type: "primary" },
-];
+interface Activity {
+    id: string;
+    activity_type: string;
+    message: string;
+    metadata: any;
+    created_at: string;
+}
 
-const activityDot: Record<string, string> = { success: "bg-success", info: "bg-info", default: "bg-neutral-400", accent: "bg-accent", primary: "bg-primary" };
-const statusDot: Record<string, string> = { Online: "bg-success", Busy: "bg-warning", Offline: "bg-neutral-400" };
+const statusStyles: Record<string, string> = {
+    "New Lead": "bg-blue-50 text-blue-600",
+    "Contacted": "bg-amber-50 text-amber-600",
+    "Site Visit": "bg-violet-50 text-violet-600",
+    "Negotiation": "bg-pink-50 text-pink-600",
+    "Closed Won": "bg-emerald-50 text-emerald-600",
+    "Follow-up": "bg-cyan-50 text-cyan-600",
+};
+
+const activityDot: Record<string, string> = {
+    success: "bg-emerald-500",
+    note: "bg-neutral-400",
+    status: "bg-blue-500",
+    created: "bg-primary"
+};
+
+const statusDot: Record<string, string> = {
+    Online: "bg-emerald-500",
+    "On Visit": "bg-violet-500",
+    "On Break": "bg-amber-500",
+    Offline: "bg-neutral-400",
+    Inactive: "bg-red-400"
+};
 
 export default function AgentDetailPage() {
     const router = useRouter();
     const params = useParams();
-    const agent = AGENTS.find((a) => a.id === Number(params.id)) || AGENTS[0];
+    const agentId = params.id as string;
+
+    const [data, setData] = useState<{ agent: Agent; leads: Lead[]; activities: Activity[] } | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!agentId) return;
+        fetchData();
+    }, [agentId]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/admin/agents/${agentId}`);
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
+            setData(result);
+        } catch (err: any) {
+            console.error("Fetch Agent Error:", err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-[70vh]"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
+    }
+
+    if (!data) {
+        return (
+            <div className="flex flex-col justify-center items-center h-[70vh] gap-4 text-center">
+                <XCircle className="w-12 h-12 text-neutral-300" />
+                <h2 className="text-xl font-bold text-neutral-700">Agent not found</h2>
+                <button onClick={() => router.back()} className="text-sm font-semibold text-primary hover:underline">Return to list</button>
+            </div>
+        );
+    }
+
+    const { agent, leads, activities } = data;
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-xs text-neutral-400 hover:text-neutral-800 transition-colors">
-                <ArrowLeft size={14} /> Back to Agents
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-800 transition-colors font-medium">
+                <ArrowLeft size={16} /> Back to Agents
             </button>
 
-            <div className="flex items-start gap-4 p-5 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                <div className="w-14 h-14 flex items-center justify-center text-lg font-bold shrink-0" style={{ background: "rgba(27, 67, 50, 0.08)", color: "#1B4332" }}>
-                    {agent.name.split(" ").map(w => w[0]).join("")}
+            <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6">
+                <div className="w-20 h-20 rounded-2xl bg-neutral-100 flex items-center justify-center text-2xl font-bold text-neutral-600 shrink-0 uppercase overflow-hidden">
+                    {agent.avatar_url ? <Image src={agent.avatar_url} alt="Avatar" width={96} height={96} className="w-full h-full object-cover" /> : agent.full_name?.charAt(0) || '?'}
                 </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-lg font-bold text-neutral-900">{agent.name}</h1>
-                        <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 ${statusDot[agent.status]} animate-pulse-dot`} />
-                            <span className="text-xs text-neutral-400">{agent.status}</span>
+                <div className="flex-1 text-center md:text-left">
+                    <div className="flex flex-col md:flex-row md:items-center gap-3">
+                        <h1 className="text-xl font-bold text-neutral-900">{agent.full_name}</h1>
+                        <div className="flex items-center justify-center md:justify-start gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-50 border border-neutral-100 w-max mx-auto md:mx-0">
+                            <span className={`w-2 h-2 rounded-full ${statusDot[agent.liveStatus] || "bg-neutral-400"}`} />
+                            <span className="text-xs font-bold text-neutral-600">{agent.liveStatus}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 mt-2 flex-wrap">
-                        <span className="text-xs text-neutral-500 flex items-center gap-1"><MapPin size={11} />{agent.area}</span>
-                        <span className="text-xs text-neutral-500 flex items-center gap-1"><Phone size={11} />{agent.phone}</span>
-                        <span className="text-xs text-neutral-500 flex items-center gap-1"><Mail size={11} />{agent.email}</span>
-                        <span className="text-xs text-neutral-400 flex items-center gap-1"><Calendar size={11} />Joined {agent.joinDate}</span>
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-3">
+                        <span className="text-sm text-neutral-500 flex items-center gap-1.5"><MapPin size={14} className="text-neutral-400" />{agent.assigned_area || "No Area Assigned"}</span>
+                        <span className="text-sm text-neutral-500 flex items-center gap-1.5"><Phone size={14} className="text-neutral-400" />{agent.phone || "No Phone"}</span>
+                        <span className="text-sm text-neutral-500 flex items-center gap-1.5"><Mail size={14} className="text-neutral-400" />{agent.email}</span>
+                        <span className="text-sm text-neutral-400 flex items-center gap-1.5"><Calendar size={14} className="text-neutral-400" />Joined {new Date(agent.created_at).toLocaleDateString()}</span>
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: "Total Leads", value: agent.leads, icon: Users, color: "text-primary" },
-                    { label: "Closed Deals", value: agent.closed, icon: Target, color: "text-success" },
-                    { label: "Conversion Rate", value: agent.rate, icon: TrendingUp, color: "text-accent" },
-                    { label: "Site Visits", value: "3", icon: MapPin, color: "text-info" },
-                ].map((stat) => {
-                    const Icon = stat.icon;
-                    return (
-                        <div key={stat.label} className="p-5 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                            <Icon size={16} className={`${stat.color} mb-2`} strokeWidth={1.5} />
-                            <p className="text-2xl font-bold text-neutral-900">{stat.value}</p>
-                            <p className="text-[10px] text-neutral-400 uppercase tracking-wider mt-0.5">{stat.label}</p>
+                    { label: "Active Leads", value: leads.filter(l => l.status !== 'Closed Won').length, icon: Users, color: "text-primary", bg: "bg-primary/5" },
+                    { label: "Closed Deals", value: leads.filter(l => l.status === 'Closed Won').length, icon: Target, color: "text-emerald-600", bg: "bg-emerald-50" },
+                    { label: "Conversion Rate", value: leads.length > 0 ? `${Math.round((leads.filter(l => l.status === 'Closed Won').length / leads.length) * 100)}%` : "0%", icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
+                    { label: "Total Handled", value: leads.length, icon: MapPin, color: "text-violet-600", bg: "bg-violet-50" },
+                ].map((stat) => (
+                    <div key={stat.label} className="bg-white rounded-2xl border border-neutral-100 p-5 shadow-sm">
+                        <div className={`w-9 h-9 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
+                            <stat.icon size={18} className={stat.color} />
                         </div>
-                    );
-                })}
+                        <p className="text-2xl font-bold text-neutral-900">{stat.value}</p>
+                        <p className="text-xs text-neutral-400 uppercase tracking-wider font-semibold mt-1">{stat.label}</p>
+                    </div>
+                ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                <div className="lg:col-span-3 p-5 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                    <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">Assigned Leads</h3>
-                    <div className="space-y-0">
-                        {ASSIGNED_LEADS.map((lead) => (
-                            <div key={lead.name} className="flex items-center justify-between py-3" style={{ borderBottom: "1px solid var(--card-border)" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-3 bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-5">Assigned Leads ({leads.length})</h3>
+                    <div className="space-y-1">
+                        {leads.length === 0 && <p className="text-sm text-neutral-400 text-center py-8">No leads assigned to this agent.</p>}
+                        {leads.map((lead) => (
+                            <div key={lead.id} className="flex items-center justify-between py-4 border-b border-neutral-50 last:border-0 hover:bg-neutral-50/50 px-2 rounded-xl transition-colors cursor-pointer" onClick={() => router.push(`/admin/leads/${lead.id}`)}>
                                 <div>
-                                    <p className="text-xs font-medium text-neutral-800">{lead.name}</p>
-                                    <p className="text-[10px] text-neutral-400 mt-0.5">{lead.budget} • {lead.type}</p>
+                                    <p className="text-sm font-bold text-neutral-800">{lead.name}</p>
+                                    <p className="text-xs text-neutral-400 mt-0.5 font-medium">{lead.budget} • {lead.property_type}</p>
                                 </div>
-                                <span className={`px-2 py-0.5 text-[10px] font-bold ${lead.statusColor}`}>{lead.status}</span>
+                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${statusStyles[lead.status] || "bg-neutral-50 text-neutral-600"}`}>
+                                    {lead.status}
+                                </span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="lg:col-span-2 p-5 card-shadow" style={{ background: "#FFFFFF", border: "1px solid var(--card-border)" }}>
-                    <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">Recent Activity</h3>
-                    <div className="space-y-4">
-                        {ACTIVITY.map((act, i) => (
-                            <div key={i} className="flex gap-3">
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-5">Recent Activity</h3>
+                    <div className="space-y-6">
+                        {activities.length === 0 && <p className="text-sm text-neutral-400 text-center py-8">No recent activity recorded.</p>}
+                        {activities.map((act, i) => (
+                            <div key={act.id} className="flex gap-3">
                                 <div className="flex flex-col items-center">
-                                    <div className={`w-2 h-2 ${activityDot[act.type]} shrink-0 mt-1`} />
-                                    {i < ACTIVITY.length - 1 && <div className="w-px flex-1 bg-card-border mt-1" />}
+                                    <div className={`w-2 h-2 rounded-full ${activityDot[act.activity_type] || "bg-neutral-300"} mt-1.5`} />
+                                    {i < activities.length - 1 && <div className="w-px flex-1 bg-neutral-100 mt-2" />}
                                 </div>
-                                <div className="pb-4">
-                                    <p className="text-xs text-neutral-700">{act.action}</p>
-                                    <p className="text-[10px] text-neutral-400 mt-0.5 flex items-center gap-1"><Clock size={8} />{act.time}</p>
+                                <div className="pb-2">
+                                    <p className="text-xs font-bold text-neutral-800">{act.activity_type}</p>
+                                    <p className="text-[11px] text-neutral-500 mt-0.5 line-clamp-2">{act.message}</p>
+                                    <p className="text-[10px] text-neutral-400 mt-1 flex items-center gap-1"><Clock size={10} />{new Date(act.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
                         ))}

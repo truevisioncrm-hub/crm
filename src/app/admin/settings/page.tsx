@@ -1,14 +1,37 @@
 "use client";
 
-import { User, Bell, Shield, Moon, Globe, Lock, Smartphone, Sun, Monitor } from "lucide-react";
-import { useState } from "react";
+import { User, Bell, Shield, Moon, Globe, Lock, Smartphone, Sun, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/lib/auth";
+import Image from "next/image";
 
 export default function SettingsPage() {
+    const { user, loading: authLoading } = useAuth();
     const [emailNotif, setEmailNotif] = useState(true);
     const [pushNotif, setPushNotif] = useState(false);
     const [activeTab, setActiveTab] = useState("Profile");
     const { theme, setTheme } = useTheme();
+
+    // Form states
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+
+    useEffect(() => {
+        if (user) {
+            setName(user.name || "");
+            setEmail(user.email || "");
+        }
+    }, [user]);
+
+    if (authLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                <p className="text-neutral-500 font-medium">Loading settings...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl space-y-8 animate-fade-in">
@@ -49,30 +72,45 @@ export default function SettingsPage() {
                             <h2 className="text-lg font-bold text-neutral-900 mb-6">Profile Details</h2>
 
                             <div className="flex items-center gap-6 mb-8">
-                                <div className="w-20 h-20 rounded-full bg-neutral-100 flex items-center justify-center text-2xl font-bold text-neutral-400 border-4 border-white shadow-lg">
-                                    JD
+                                <div className="w-20 h-20 rounded-full bg-neutral-100 flex items-center justify-center text-2xl font-bold text-neutral-400 border-4 border-white shadow-lg overflow-hidden relative">
+                                    {user?.avatar ? (
+                                        <Image src={user.avatar} alt="Avatar" fill className="object-cover" />
+                                    ) : (
+                                        user?.name?.charAt(0) || "U"
+                                    )}
                                 </div>
                                 <button className="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 hover:bg-neutral-50 transition-colors shadow-sm">
                                     Change Avatar
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">First Name</label>
-                                    <input type="text" defaultValue="John" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium" />
+                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={name} 
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium" 
+                                    />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Last Name</label>
-                                    <input type="text" defaultValue="Doe" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium" />
-                                </div>
-                                <div className="col-span-2 space-y-1.5">
                                     <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Email Address</label>
-                                    <input type="email" defaultValue="admin@truevision.com" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium" />
+                                    <input 
+                                        type="email" 
+                                        value={email} 
+                                        readOnly
+                                        className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-500 text-sm font-medium cursor-not-allowed" 
+                                    />
                                 </div>
-                                <div className="col-span-2 space-y-1.5">
+                                <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Role</label>
-                                    <input type="text" defaultValue="Administrator" disabled className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-500 text-sm font-medium cursor-not-allowed" />
+                                    <input 
+                                        type="text" 
+                                        defaultValue={user?.role === 'admin' ? "Administrator" : "Agent"} 
+                                        disabled 
+                                        className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-500 text-sm font-medium cursor-not-allowed capitalize" 
+                                    />
                                 </div>
                             </div>
 
@@ -186,19 +224,6 @@ export default function SettingsPage() {
                                     </button>
                                 </div>
                             </div>
-
-                            {/* Current Theme Info */}
-                            <div className="mt-6 p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                                        {theme === "dark" ? <Moon size={18} className="text-violet-500" /> : <Sun size={18} className="text-amber-500" />}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-neutral-900">Currently using {theme === "dark" ? "Dark" : "Light"} mode</p>
-                                        <p className="text-xs text-neutral-500">Your preference is saved automatically</p>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -209,15 +234,15 @@ export default function SettingsPage() {
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Current Password</label>
-                                    <input type="password" placeholder="Enter current password" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm" />
+                                    <input type="password" placeholder="Enter current password" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm focus:border-primary outline-none" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">New Password</label>
-                                    <input type="password" placeholder="Enter new password" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm" />
+                                    <input type="password" placeholder="Enter new password" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm focus:border-primary outline-none" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Confirm Password</label>
-                                    <input type="password" placeholder="Confirm new password" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm" />
+                                    <input type="password" placeholder="Confirm new password" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm focus:border-primary outline-none" />
                                 </div>
                                 <div className="mt-4 flex justify-end">
                                     <button className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:bg-primary-dark transition-all flex items-center gap-2">

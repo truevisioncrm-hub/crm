@@ -1,20 +1,29 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
     ArrowLeft, MapPin, BedDouble, Bath, Maximize, Heart, Share2, Phone, MessageSquare,
-    Calendar, IndianRupee, Home, User, FileText, Clock, CheckCircle, Eye, Star, Compass,
-    Car, Trees, Dumbbell, Shield, Waves
+    Home, Clock, Eye, Star, Compass,
+    Car, Trees, Dumbbell, Shield, Waves, Loader2
 } from "lucide-react";
 
-const PROPERTIES = [
-    { id: 1, title: "Prestige Lakeside Villa", location: "Whitefield, Bangalore", price: "₹4.5 Cr", pricePerSqft: "₹12,857", type: "Villa", beds: 4, baths: 5, area: "3,500", status: "Available", facing: "East", floor: "Ground + 2", parking: 2, furnished: "Semi-Furnished", ownership: "Freehold", ageYears: 2, description: "Luxurious lakeside villa with panoramic views, modern interiors, Italian marble flooring, modular kitchen with chimney, and private garden. Located in the heart of Whitefield with excellent connectivity to IT hubs.", builder: "Prestige Group", rera: "PRM/KA/RERA/1251/2024", agent: "Arjun Mehta" },
-    { id: 2, title: "Brigade Panorama", location: "Koramangala, Bangalore", price: "₹1.2 Cr", pricePerSqft: "₹10,000", type: "Apartment", beds: 2, baths: 2, area: "1,200", status: "Reserved", facing: "North", floor: "14th of 22", parking: 1, furnished: "Unfurnished", ownership: "Freehold", ageYears: 0, description: "Brand new 2BHK apartment in the prime location of Koramangala. Features include a spacious living room, balcony with city view, modern amenities, and walking distance to restaurants and metro.", builder: "Brigade Group", rera: "PRM/KA/RERA/1389/2024", agent: "Priya Singh" },
-    { id: 3, title: "Sobha City Heights", location: "Hebbal, Bangalore", price: "₹2.8 Cr", pricePerSqft: "₹13,333", type: "Penthouse", beds: 3, baths: 3, area: "2,100", status: "Available", facing: "South-East", floor: "Top Floor", parking: 2, furnished: "Fully Furnished", ownership: "Freehold", ageYears: 1, description: "Exclusive sky penthouse with private terrace, infinity-edge pool access, floor-to-ceiling windows, smart home automation, and breathtaking views of Hebbal lake.", builder: "Sobha Limited", rera: "PRM/KA/RERA/1567/2024", agent: "Arjun Mehta" },
-    { id: 4, title: "Godrej Woods", location: "Sarjapur, Bangalore", price: "₹95 L", pricePerSqft: "₹8,636", type: "Apartment", beds: 2, baths: 2, area: "1,100", status: "Sold", facing: "West", floor: "8th of 15", parking: 1, furnished: "Semi-Furnished", ownership: "Freehold", ageYears: 3, description: "Affordable luxury apartment in Sarjapur Road. Features include a club house, swimming pool, jogging track, and proximity to top schools and hospitals.", builder: "Godrej Properties", rera: "PRM/KA/RERA/0982/2023", agent: "Rahul Kumar" },
-    { id: 5, title: "Embassy One", location: "Indiranagar, Bangalore", price: "₹5.5 Cr", pricePerSqft: "₹13,095", type: "Villa", beds: 5, baths: 6, area: "4,200", status: "Available", facing: "North-East", floor: "Ground + 2", parking: 3, furnished: "Fully Furnished", ownership: "Freehold", ageYears: 1, description: "Ultra-premium villa in Indiranagar with designer interiors, private pool, home theater, rooftop lounge, and manicured garden. Walking distance to 100 Feet Road.", builder: "Embassy Group", rera: "PRM/KA/RERA/1701/2024", agent: "Sneha Patel" },
-    { id: 6, title: "Prestige Golfshire", location: "Devanahalli, Bangalore", price: "₹8.5 Cr", pricePerSqft: "₹14,167", type: "Mansion", beds: 6, baths: 7, area: "6,000", status: "Available", facing: "South", floor: "Ground + 3", parking: 4, furnished: "Fully Furnished", ownership: "Freehold", ageYears: 0, description: "Majestic mansion inside the Prestige Golfshire township. Sprawling gardens, private pool, wine cellar, staff quarters, and panoramic views of the championship golf course.", builder: "Prestige Group", rera: "PRM/KA/RERA/1845/2024", agent: "Arjun Mehta" },
-];
+interface Property {
+    id: string;
+    title: string;
+    location: string;
+    price: number | string;
+    property_type: string;
+    bedrooms: number;
+    bathrooms: number;
+    area_sqft: number;
+    status: string;
+    description: string;
+    images: string[];
+    features: any;
+    created_at: string;
+    pf_listing_id?: string;
+}
 
 const AMENITIES = [
     { label: "Swimming Pool", icon: Waves },
@@ -25,25 +34,84 @@ const AMENITIES = [
     { label: "Clubhouse", icon: Home },
 ];
 
-const ENQUIRIES = [
-    { name: "Rahul Sharma", date: "2 hours ago", message: "Interested in a site visit this weekend." },
-    { name: "Meera Gupta", date: "1 day ago", message: "Can you share the floor plan?" },
-    { name: "Anil Kapoor", date: "3 days ago", message: "What is the possession date?" },
-];
-
-const VISITS = [
-    { client: "Ahmed Khan", date: "Feb 18, 2026", time: "10:30 AM", status: "Scheduled" },
-    { client: "Sara Mirza", date: "Feb 15, 2026", time: "2:00 PM", status: "Completed" },
-    { client: "David John", date: "Feb 12, 2026", time: "11:00 AM", status: "Completed" },
-];
-
-export default function PropertyDetailPage() {
+export default function RentPropertyDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const id = Number(params.id);
-    const property = PROPERTIES.find((p) => p.id === id) || PROPERTIES[0];
+    const id = params.id as string;
 
-    const statusColor = property.status === "Available" ? "bg-emerald-500" : property.status === "Reserved" ? "bg-amber-500" : "bg-red-500";
+    const [property, setProperty] = useState<Property | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [publishingToPF, setPublishingToPF] = useState(false);
+
+    const publishToPF = async () => {
+        if (!confirm("Are you sure you want to publish this property to Property Finder?")) return;
+
+        setPublishingToPF(true);
+        try {
+            const res = await fetch('/api/admin/propertyfinder/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ propertyId: id })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to publish");
+
+            alert("✅ " + (data.message || "Successfully published to Property Finder!"));
+
+            // Refresh property data
+            const refreshRes = await fetch(`/api/admin/properties/${id}`);
+            if (refreshRes.ok) {
+                setProperty(await refreshRes.json());
+            }
+        } catch (err: any) {
+            alert(`❌ Error publishing to Property Finder:\n\n${err.message}`);
+        } finally {
+            setPublishingToPF(false);
+        }
+    };
+
+    useEffect(() => {
+        const fetchProperty = async () => {
+            try {
+                const res = await fetch(`/api/admin/properties/${id}`);
+                if (!res.ok) throw new Error("Property not found");
+                const data = await res.json();
+                setProperty(data);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) fetchProperty();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                <p className="text-neutral-500 font-medium">Loading property details...</p>
+            </div>
+        );
+    }
+
+    if (error || !property) {
+        return (
+            <div className="p-8 text-center">
+                <p className="text-red-500 font-bold mb-4">Error: {error || "Property not found"}</p>
+                <button onClick={() => router.back()} className="text-primary font-semibold hover:underline flex items-center gap-2 justify-center mx-auto">
+                    <ArrowLeft size={16} /> Back to Inventory
+                </button>
+            </div>
+        );
+    }
+
+    const statusColor = property.status === "available" ? "bg-emerald-500" : property.status === "reserved" ? "bg-amber-500" : "bg-red-500";
+    const formattedPrice = typeof property.price === 'number'
+        ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(property.price)
+        : property.price;
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -56,10 +124,10 @@ export default function PropertyDetailPage() {
             <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
                 {/* Image Area */}
                 <div className="h-56 sm:h-72 bg-neutral-200 relative">
-                    <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-xl text-xs font-bold text-neutral-900 shadow">
-                        {property.type}
+                    <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-xl text-xs font-bold text-neutral-900 shadow uppercase">
+                        {property.property_type}
                     </div>
-                    <div className={`absolute top-5 right-5 ${statusColor} text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow`}>
+                    <div className={`absolute top-5 right-5 ${statusColor} text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow capitalize`}>
                         {property.status}
                     </div>
                     {/* Bottom gradient */}
@@ -86,10 +154,22 @@ export default function PropertyDetailPage() {
                 <div className="p-6">
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                         <div>
-                            <p className="text-3xl font-bold text-primary">{property.price}</p>
-                            <p className="text-xs text-neutral-400 mt-0.5">{property.pricePerSqft} / sqft</p>
+                            <p className="text-3xl font-bold text-primary">{formattedPrice} <span className="text-xs text-neutral-400">/ month</span></p>
+                            <p className="text-xs text-neutral-400 mt-0.5">Deposit: 3x Rent</p>
                         </div>
                         <div className="flex gap-3">
+                            {property.pf_listing_id ? (
+                                <button disabled className="flex items-center gap-2 px-4 py-2.5 bg-neutral-100 text-neutral-500 border border-neutral-200 rounded-xl text-sm font-semibold cursor-not-allowed">
+                                    🏢 Published to PF
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={publishToPF}
+                                    disabled={publishingToPF}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-[#ef3e42] text-white rounded-xl text-sm font-semibold hover:bg-[#d4373b] transition-colors shadow-lg shadow-red-500/25 disabled:opacity-50">
+                                    {publishingToPF ? <Loader2 size={16} className="animate-spin" /> : "🏢 Publish to PF"}
+                                </button>
+                            )}
                             <button className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/25">
                                 <Phone size={16} /> Call Owner
                             </button>
@@ -99,155 +179,94 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* Specs Row */}
-                    <div className="flex flex-wrap gap-3">
-                        {[
-                            { icon: BedDouble, label: `${property.beds} Bedrooms` },
-                            { icon: Bath, label: `${property.baths} Bathrooms` },
-                            { icon: Maximize, label: `${property.area} sqft` },
-                            { icon: Compass, label: `${property.facing} Facing` },
-                            { icon: Home, label: property.floor },
-                            { icon: Car, label: `${property.parking} Parking` },
-                        ].map((spec) => {
-                            const Icon = spec.icon;
-                            return (
-                                <div key={spec.label} className="flex items-center gap-2 bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-2.5">
-                                    <Icon size={16} className="text-neutral-400" />
-                                    <span className="text-xs font-medium text-neutral-700">{spec.label}</span>
-                                </div>
-                            );
-                        })}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-neutral-50 rounded-2xl">
+                        <div className="flex flex-col items-center gap-1 border-r border-neutral-200 last:border-0">
+                            <BedDouble size={18} className="text-neutral-400" />
+                            <span className="text-sm font-bold text-neutral-900">{property.bedrooms}</span>
+                            <span className="text-[10px] text-neutral-400 uppercase font-medium">Bedrooms</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1 border-r border-neutral-200 last:border-0">
+                            <Bath size={18} className="text-neutral-400" />
+                            <span className="text-sm font-bold text-neutral-900">{property.bathrooms}</span>
+                            <span className="text-[10px] text-neutral-400 uppercase font-medium">Bathrooms</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1 border-r border-neutral-200 last:border-0">
+                            <Maximize size={18} className="text-neutral-400" />
+                            <span className="text-sm font-bold text-neutral-900">{property.area_sqft}</span>
+                            <span className="text-[10px] text-neutral-400 uppercase font-medium">Sq. Ft.</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                            <Compass size={18} className="text-neutral-400" />
+                            <span className="text-sm font-bold text-neutral-900">North</span>
+                            <span className="text-[10px] text-neutral-400 uppercase font-medium">Facing</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Info Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { label: "Furnished", value: property.furnished, icon: Home, color: "text-primary" },
-                    { label: "Ownership", value: property.ownership, icon: FileText, color: "text-emerald-600" },
-                    { label: "Property Age", value: property.ageYears === 0 ? "New" : `${property.ageYears} Years`, icon: Calendar, color: "text-amber-600" },
-                    { label: "Listed By", value: property.agent, icon: User, color: "text-violet-600" },
-                ].map((info) => {
-                    const Icon = info.icon;
-                    return (
-                        <div key={info.label} className="bg-white rounded-2xl border border-neutral-100 p-5 shadow-sm">
-                            <div className={`w-9 h-9 rounded-xl ${info.color} bg-opacity-10 flex items-center justify-center mb-3`} style={{ backgroundColor: "currentColor", opacity: 0.08 }}>
-                                <Icon size={18} className={info.color} style={{ opacity: 1 }} />
-                            </div>
-                            <p className="text-sm font-bold text-neutral-900">{info.value}</p>
-                            <p className="text-[10px] text-neutral-400 uppercase tracking-wider mt-0.5">{info.label}</p>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Two Column: Description + Details | Enquiries + Visits */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                {/* Left Column */}
-                <div className="lg:col-span-3 space-y-6">
-                    {/* Description */}
-                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                        <h3 className="text-sm font-bold text-neutral-900 mb-3">About this Property</h3>
-                        <p className="text-sm text-neutral-600 leading-relaxed">{property.description}</p>
-
-                        <div className="mt-5 pt-5 border-t border-neutral-100">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Shield size={14} className="text-emerald-500" />
-                                <span className="text-xs font-semibold text-emerald-600">RERA Verified</span>
-                            </div>
-                            <p className="text-[11px] text-neutral-400">RERA No: {property.rera}</p>
-                            <p className="text-[11px] text-neutral-400">Builder: {property.builder}</p>
-                        </div>
-                    </div>
-
-                    {/* Amenities */}
-                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                        <h3 className="text-sm font-bold text-neutral-900 mb-4">Amenities</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {AMENITIES.map((amenity) => {
-                                const Icon = amenity.icon;
-                                return (
-                                    <div key={amenity.label} className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100">
-                                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                            <Icon size={16} className="text-primary" />
-                                        </div>
-                                        <span className="text-xs font-medium text-neutral-700">{amenity.label}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Column */}
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Description + Amenities */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Recent Enquiries */}
-                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-bold text-neutral-900">Recent Enquiries</h3>
-                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{ENQUIRIES.length}</span>
-                        </div>
-                        <div className="space-y-3">
-                            {ENQUIRIES.map((enq, i) => (
-                                <div key={i} className="p-3 bg-neutral-50 rounded-xl border border-neutral-100">
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/10">
-                                                {enq.name.charAt(0)}
-                                            </div>
-                                            <span className="text-xs font-bold text-neutral-800">{enq.name}</span>
-                                        </div>
-                                        <span className="text-[10px] text-neutral-400">{enq.date}</span>
+                    <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+                        <h2 className="text-lg font-bold text-neutral-900 mb-4">Description</h2>
+                        <p className="text-sm text-neutral-600 leading-relaxed whitespace-pre-line">
+                            {property.description || "No description provided for this rental property."}
+                        </p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+                        <h2 className="text-lg font-bold text-neutral-900 mb-6">Top Amenities</h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                            {AMENITIES.map((item) => (
+                                <div key={item.label} className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-primary border border-neutral-100">
+                                        <item.icon size={20} />
                                     </div>
-                                    <p className="text-[11px] text-neutral-500 pl-9">{enq.message}</p>
+                                    <span className="text-sm font-medium text-neutral-700">{item.label}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
+                </div>
 
-                    {/* Site Visits */}
-                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-bold text-neutral-900">Site Visits</h3>
-                            <button className="text-[10px] font-bold text-primary hover:underline">+ Schedule</button>
-                        </div>
-                        <div className="space-y-3">
-                            {VISITS.map((visit, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 bg-neutral-50 rounded-xl border border-neutral-100">
-                                    <div>
-                                        <p className="text-xs font-bold text-neutral-800">{visit.client}</p>
-                                        <p className="text-[10px] text-neutral-400 mt-0.5 flex items-center gap-1">
-                                            <Calendar size={9} /> {visit.date} · {visit.time}
-                                        </p>
-                                    </div>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${visit.status === "Scheduled" ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"}`}>
-                                        {visit.status}
-                                    </span>
-                                </div>
-                            ))}
+                {/* Sidebar Info */}
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+                        <h2 className="text-lg font-bold text-neutral-900 mb-4">Rental Info</h2>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-50">
+                                <span className="text-neutral-400 flex items-center gap-2"><Home size={14} /> Property Type</span>
+                                <span className="font-semibold text-neutral-900 capitalize">{property.property_type}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-50">
+                                <span className="text-neutral-400 flex items-center gap-2"><Clock size={14} /> Available From</span>
+                                <span className="font-semibold text-neutral-900">Immediate</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-50">
+                                <span className="text-neutral-400 flex items-center gap-2"><Maximize size={14} /> Carpet Area</span>
+                                <span className="font-semibold text-neutral-900">{property.area_sqft} sqft</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm py-2">
+                                <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Security Deposit</span>
+                                <span className="font-semibold text-neutral-900">₹{Number(property.price) * 3}</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Quick Stats */}
-                    <div className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
-                        <h3 className="text-sm font-bold text-neutral-900 mb-4">Listing Performance</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                { label: "Views", value: "1,245", icon: Eye, color: "text-blue-600" },
-                                { label: "Enquiries", value: "23", icon: MessageSquare, color: "text-emerald-600" },
-                                { label: "Shortlisted", value: "18", icon: Star, color: "text-amber-600" },
-                                { label: "Site Visits", value: "5", icon: CheckCircle, color: "text-violet-600" },
-                            ].map((stat) => {
-                                const Icon = stat.icon;
-                                return (
-                                    <div key={stat.label} className="text-center p-3 bg-neutral-50 rounded-xl border border-neutral-100">
-                                        <Icon size={16} className={`${stat.color} mx-auto mb-1.5`} />
-                                        <p className="text-lg font-bold text-neutral-900">{stat.value}</p>
-                                        <p className="text-[9px] text-neutral-400 uppercase tracking-wider">{stat.label}</p>
-                                    </div>
-                                );
-                            })}
+                    <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm">
+                                <Star size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-neutral-900">Hot Property</h3>
+                                <p className="text-xs text-neutral-500">Listed recently</p>
+                            </div>
+                        </div>
+                        <div className="bg-white/60 backdrop-blur-sm p-3 rounded-xl border border-white flex items-center justify-between">
+                            <span className="text-xs font-bold text-neutral-600 flex items-center gap-1.5"><Eye size={14} /> 12 Views today</span>
+                            <span className="text-[10px] font-bold text-emerald-600">+5% week</span>
                         </div>
                     </div>
                 </div>
