@@ -109,8 +109,9 @@ export default function RentPropertyDetailPage() {
     }
 
     const statusColor = property.status === "available" ? "bg-emerald-500" : property.status === "reserved" ? "bg-amber-500" : "bg-red-500";
+    // Format AED price — could be a number or a display string like "AED 75K - 100K / yr"
     const formattedPrice = typeof property.price === 'number'
-        ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(property.price)
+        ? new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED', maximumFractionDigits: 0 }).format(property.price)
         : property.price;
 
     return (
@@ -154,8 +155,8 @@ export default function RentPropertyDetailPage() {
                 <div className="p-6">
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                         <div>
-                            <p className="text-3xl font-bold text-primary">{formattedPrice} <span className="text-xs text-neutral-400">/ month</span></p>
-                            <p className="text-xs text-neutral-400 mt-0.5">Deposit: 3x Rent</p>
+                            <p className="text-3xl font-bold text-primary">{formattedPrice} <span className="text-xs text-neutral-400">/ year</span></p>
+                            <p className="text-xs text-neutral-400 mt-0.5">Security Deposit: 5% of Annual Rent</p>
                         </div>
                         <div className="flex gap-3">
                             {property.pf_listing_id ? (
@@ -249,7 +250,7 @@ export default function RentPropertyDetailPage() {
                             </div>
                             <div className="flex items-center justify-between text-sm py-2">
                                 <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Security Deposit</span>
-                                <span className="font-semibold text-neutral-900">₹{Number(property.price) * 3}</span>
+                                <span className="font-semibold text-neutral-900">5% Annual Rent</span>
                             </div>
                         </div>
                     </div>

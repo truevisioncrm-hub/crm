@@ -3,8 +3,24 @@
 import { useState, useEffect } from "react";
 import { Search, Filter, MapPin, BedDouble, Bath, Maximize, Heart, Share2, Plus, X, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+
+// Dubai locations
+const DUBAI_LOCATIONS = [
+    "Downtown Dubai", "Dubai Marina", "Palm Jumeirah", "Business Bay",
+    "Jumeirah Beach Residence (JBR)", "DIFC", "Dubai Hills Estate",
+    "Arabian Ranches", "Jumeirah Village Circle (JVC)", "Al Barsha",
+    "Mirdif", "Deira", "Bur Dubai", "Jumeirah", "Al Quoz",
+    "Dubai Sports City", "Dubai Silicon Oasis", "International City",
+    "Discovery Gardens", "Motor City",
+];
+
+// AED sell price ranges
+const SELL_PRICES = [
+    "AED 300K - 500K", "AED 500K - 750K", "AED 750K - 1M",
+    "AED 1M - 1.5M", "AED 1.5M - 2M", "AED 2M - 3M",
+    "AED 3M - 5M", "AED 5M - 10M", "AED 10M+",
+];
 
 interface Property {
     id: number;
@@ -25,8 +41,7 @@ export default function SellInventoryPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Smart dropdown states
-    const [priceSelect, setPriceSelect] = useState("₹40-60 Lakhs");
+    const [priceSelect, setPriceSelect] = useState("AED 1M - 1.5M");
     const [priceCustom, setPriceCustom] = useState("");
     const [locationSelect, setLocationSelect] = useState("");
     const [locationCustom, setLocationCustom] = useState("");
@@ -66,7 +81,7 @@ export default function SellInventoryPage() {
             area_sqft: Number(formData.get("area_sqft")) || null,
             bedrooms: Number(formData.get("bedrooms")) || null,
             bathrooms: Number(formData.get("bathrooms")) || null,
-            status: formData.get("status") as string || "Available",
+            status: formData.get("status") as string || "available",
             description: formData.get("description") as string || null,
         };
 
@@ -77,19 +92,15 @@ export default function SellInventoryPage() {
                 body: JSON.stringify(newProperty),
             });
             const data = await response.json();
-
             if (data.error) throw new Error(data.error);
-
             setProperties([data as unknown as Property, ...properties]);
             setIsModalOpen(false);
             toast.success("Property listed successfully!");
-            // Reset form states
-            setPriceSelect("₹40-60 Lakhs");
+            setPriceSelect("AED 1M - 1.5M");
             setPriceCustom("");
             setLocationSelect("");
             setLocationCustom("");
         } catch (err: any) {
-            console.error(err.message);
             toast.error(err.message || "Failed to add property");
         } finally {
             setIsSubmitting(false);
@@ -102,14 +113,14 @@ export default function SellInventoryPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-neutral-900">Sell Properties</h1>
-                    <p className="text-sm text-neutral-500 mt-1">Manage property listings and availability</p>
+                    <p className="text-sm text-neutral-500 mt-1">Manage sale property listings across Dubai</p>
                 </div>
                 <div className="flex gap-3">
                     <button className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-semibold hover:bg-neutral-50 transition-colors shadow-sm">
                         <Filter size={16} /> Filters
                     </button>
                     <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25 flex items-center gap-2">
-                        <Plus size={16} /> Add Sell
+                        <Plus size={16} /> Add Property
                     </button>
                 </div>
             </div>
@@ -125,24 +136,22 @@ export default function SellInventoryPage() {
                     </div>
                     <h3 className="text-lg font-bold text-neutral-900 mb-1">No properties found</h3>
                     <p className="text-sm text-neutral-500 mb-6 text-center max-w-sm">
-                        There are no properties listed for sale yet. Add your first listing to get started.
+                        No properties listed for sale yet. Add your first Dubai listing.
                     </p>
                     <button onClick={() => setIsModalOpen(true)} className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:bg-primary-dark transition-all">
                         + Add First Property
                     </button>
                 </div>
             ) : (
-                /* Grid */
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {properties.map((property) => (
                         <Link href={`/admin/sell/${property.id}`} key={property.id} className="group bg-white border border-neutral-100 rounded-3xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 card-shadow flex flex-col">
-                            {/* Image Placeholder */}
                             <div className={`h-48 w-full bg-neutral-200 relative`}>
                                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-neutral-900 shadow-sm">
                                     {property.property_type || property.type}
                                 </div>
-                                <div className={`absolute top-4 right-4 px-3 py-1 rounded-lg text-xs font-bold shadow-sm ${property.status === "Available" ? "bg-emerald-500 text-white" :
-                                    property.status === "Reserved" ? "bg-amber-500 text-white" :
+                                <div className={`absolute top-4 right-4 px-3 py-1 rounded-lg text-xs font-bold shadow-sm ${property.status === "available" ? "bg-emerald-500 text-white" :
+                                    property.status === "reserved" ? "bg-amber-500 text-white" :
                                         "bg-red-500 text-white"
                                     }`}>
                                     {property.status}
@@ -156,7 +165,6 @@ export default function SellInventoryPage() {
                                         <MapPin size={14} className="shrink-0" />
                                         <span className="truncate">{property.location}</span>
                                     </div>
-
                                     <div className="flex items-center gap-3 mb-6 flex-wrap">
                                         {property.beds && (
                                             <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 bg-neutral-50 px-2 py-1 rounded-lg">
@@ -173,16 +181,11 @@ export default function SellInventoryPage() {
                                         </div>
                                     </div>
                                 </div>
-
                                 <div className="pt-5 border-t border-neutral-100 flex items-center justify-between">
                                     <span className="text-xl font-bold text-primary">{property.price}</span>
                                     <div className="flex gap-2">
-                                        <button className="p-2 rounded-full hover:bg-neutral-50 text-neutral-400 hover:text-red-500 transition-colors">
-                                            <Heart size={18} />
-                                        </button>
-                                        <button className="p-2 rounded-full hover:bg-neutral-50 text-neutral-400 hover:text-neutral-900 transition-colors">
-                                            <Share2 size={18} />
-                                        </button>
+                                        <button className="p-2 rounded-full hover:bg-neutral-50 text-neutral-400 hover:text-red-500 transition-colors"><Heart size={18} /></button>
+                                        <button className="p-2 rounded-full hover:bg-neutral-50 text-neutral-400 hover:text-neutral-900 transition-colors"><Share2 size={18} /></button>
                                     </div>
                                 </div>
                             </div>
@@ -197,8 +200,8 @@ export default function SellInventoryPage() {
                     <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-6 border-b border-neutral-100 shrink-0">
                             <div>
-                                <h3 className="text-xl font-bold text-neutral-900">Add Property (Sell)</h3>
-                                <p className="text-sm text-neutral-500 mt-1">Create a new property listing for sale.</p>
+                                <h3 className="text-xl font-bold text-neutral-900">Add Property for Sale</h3>
+                                <p className="text-sm text-neutral-500 mt-1">List a new Dubai property for sale.</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-xl transition-colors">
                                 <X size={20} />
@@ -212,42 +215,32 @@ export default function SellInventoryPage() {
                                     <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Property Details</h4>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-neutral-700">Property Title *</label>
-                                        <input required name="title" type="text" placeholder="e.g. Prestige Lakeside Villa" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+                                        <input required name="title" type="text" placeholder="e.g. Luxury 2BR Apartment in Dubai Marina" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-medium text-neutral-700">Property Type *</label>
                                             <select required name="property_type" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="1bhk">1 BHK Apartment</option>
-                                                <option value="2bhk">2 BHK Apartment</option>
-                                                <option value="3bhk">3 BHK Apartment</option>
-                                                <option value="4bhk">4 BHK+ / Penthouse</option>
-                                                <option value="villa">Villa / Row House</option>
+                                                <option value="studio">Studio</option>
+                                                <option value="1bhk">1 Bedroom Apartment</option>
+                                                <option value="2bhk">2 Bedroom Apartment</option>
+                                                <option value="3bhk">3 Bedroom Apartment</option>
+                                                <option value="4bhk">4+ Bedroom Apartment</option>
+                                                <option value="penthouse">Penthouse</option>
+                                                <option value="villa">Villa</option>
                                                 <option value="plot">Plot / Land</option>
                                                 <option value="commercial">Commercial</option>
-                                                <option value="studio">Studio</option>
                                             </select>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Location Area *</label>
+                                            <label className="text-xs font-medium text-neutral-700">Location / Area *</label>
                                             <select required value={locationSelect} onChange={(e) => setLocationSelect(e.target.value)} className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="" disabled>Select location...</option>
-                                                <option value="Whitefield">Whitefield</option>
-                                                <option value="Indiranagar">Indiranagar</option>
-                                                <option value="Koramangala">Koramangala</option>
-                                                <option value="HSR Layout">HSR Layout</option>
-                                                <option value="Marathahalli">Marathahalli</option>
-                                                <option value="Electronic City">Electronic City</option>
-                                                <option value="Sarjapur Road">Sarjapur Road</option>
-                                                <option value="Hebbal">Hebbal</option>
-                                                <option value="Yelahanka">Yelahanka</option>
-                                                <option value="JP Nagar">JP Nagar</option>
-                                                <option value="Bannerghatta Road">Bannerghatta Road</option>
-                                                <option value="Rajajinagar">Rajajinagar</option>
-                                                <option value="custom">✏️ Custom</option>
+                                                <option value="" disabled>Select Dubai area...</option>
+                                                {DUBAI_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                                                <option value="custom">✏️ Other / Custom</option>
                                             </select>
                                             {locationSelect === "custom" && (
-                                                <input required value={locationCustom} onChange={(e) => setLocationCustom(e.target.value)} type="text" placeholder="Enter custom location" className="w-full mt-2 px-4 py-2 bg-white border border-primary/30 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+                                                <input required value={locationCustom} onChange={(e) => setLocationCustom(e.target.value)} type="text" placeholder="Enter area name" className="w-full mt-2 px-4 py-2 bg-white border border-primary/30 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
                                             )}
                                         </div>
                                     </div>
@@ -258,34 +251,25 @@ export default function SellInventoryPage() {
                                     <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Pricing & Specifications</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Price *</label>
+                                            <label className="text-xs font-medium text-neutral-700">Sale Price (AED) *</label>
                                             <select required value={priceSelect} onChange={(e) => setPriceSelect(e.target.value)} className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="₹20-40 Lakhs">₹20-40 Lakhs</option>
-                                                <option value="₹40-60 Lakhs">₹40-60 Lakhs</option>
-                                                <option value="₹60-80 Lakhs">₹60-80 Lakhs</option>
-                                                <option value="₹80L - 1 Cr">₹80 Lakhs - 1 Cr</option>
-                                                <option value="₹1 - 1.5 Cr">₹1 - 1.5 Cr</option>
-                                                <option value="₹1.5 - 2 Cr">₹1.5 - 2 Cr</option>
-                                                <option value="₹2 - 3 Cr">₹2 - 3 Cr</option>
-                                                <option value="₹3 - 5 Cr">₹3 - 5 Cr</option>
-                                                <option value="₹5 - 10 Cr">₹5 - 10 Cr</option>
-                                                <option value="₹10 Cr+">₹10 Cr+</option>
+                                                {SELL_PRICES.map(p => <option key={p} value={p}>{p}</option>)}
                                                 <option value="custom">✏️ Custom</option>
                                             </select>
                                             {priceSelect === "custom" && (
-                                                <input required value={priceCustom} onChange={(e) => setPriceCustom(e.target.value)} type="text" placeholder="Enter custom price, e.g. ₹4.5 Cr" className="w-full mt-2 px-4 py-2 bg-white border border-primary/30 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+                                                <input required value={priceCustom} onChange={(e) => setPriceCustom(e.target.value)} type="text" placeholder="e.g. AED 2,500,000" className="w-full mt-2 px-4 py-2 bg-white border border-primary/30 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
                                             )}
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-medium text-neutral-700">Area (sqft)</label>
-                                            <input name="area_sqft" type="number" placeholder="e.g. 3500" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+                                            <input name="area_sqft" type="number" placeholder="e.g. 1500" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-medium text-neutral-700">Bedrooms</label>
                                             <select name="bedrooms" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="">Select</option>
+                                                <option value="">Studio / Select</option>
                                                 <option value="1">1 Bedroom</option>
                                                 <option value="2">2 Bedrooms</option>
                                                 <option value="3">3 Bedrooms</option>
@@ -319,22 +303,16 @@ export default function SellInventoryPage() {
                                     <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Additional Info</h4>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-neutral-700">Description (Optional)</label>
-                                        <textarea name="description" rows={3} placeholder="Key features, amenities, nearby landmarks..." className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all custom-scrollbar resize-none"></textarea>
+                                        <textarea name="description" rows={3} placeholder="Key features, amenities, nearby landmarks, payment plan details..." className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all custom-scrollbar resize-none"></textarea>
                                     </div>
                                 </div>
                             </form>
                         </div>
 
                         <div className="p-6 border-t border-neutral-100 bg-neutral-50/50 flex items-center justify-end gap-3 shrink-0">
-                            <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 hover:bg-neutral-200 transition-colors">
-                                Cancel
-                            </button>
+                            <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 hover:bg-neutral-200 transition-colors">Cancel</button>
                             <button type="submit" form="add-property-form" disabled={isSubmitting} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                                {isSubmitting ? (
-                                    <><Loader2 size={16} className="animate-spin" /> Saving...</>
-                                ) : (
-                                    "Save Listing"
-                                )}
+                                {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : "Save Listing"}
                             </button>
                         </div>
                     </div>

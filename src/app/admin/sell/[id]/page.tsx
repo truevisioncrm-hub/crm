@@ -109,8 +109,9 @@ export default function PropertyDetailPage() {
     }
 
     const statusColor = property.status === "available" ? "bg-emerald-500" : property.status === "reserved" ? "bg-amber-500" : "bg-red-500";
+    // Format AED price — could be a number or a display string like "AED 1M - 1.5M"
     const formattedPrice = typeof property.price === 'number'
-        ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(property.price)
+        ? new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED', maximumFractionDigits: 0 }).format(property.price)
         : property.price;
 
     return (
@@ -155,7 +156,9 @@ export default function PropertyDetailPage() {
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                         <div>
                             <p className="text-3xl font-bold text-primary">{formattedPrice}</p>
-                            <p className="text-xs text-neutral-400 mt-0.5">₹{(Number(property.price) / property.area_sqft).toFixed(0)} / sqft</p>
+                            {typeof property.price === 'number' && property.area_sqft > 0 && (
+                                <p className="text-xs text-neutral-400 mt-0.5">AED {(Number(property.price) / property.area_sqft).toFixed(0)} / sqft</p>
+                            )}
                         </div>
                         <div className="flex gap-3">
                             {property.pf_listing_id ? (
@@ -248,7 +251,7 @@ export default function PropertyDetailPage() {
                                 <span className="font-semibold text-neutral-900">{property.area_sqft} sqft</span>
                             </div>
                             <div className="flex items-center justify-between text-sm py-2">
-                                <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> RERA Number</span>
+                                <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> DLD Reference</span>
                                 <span className="font-semibold text-neutral-900 uppercase">Applied</span>
                             </div>
                         </div>
