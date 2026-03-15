@@ -138,9 +138,9 @@ export default function RentPropertyDetailPage() {
                     <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
                     <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-white drop-shadow-lg">{property.title}</h1>
+                            <h1 className="text-2xl font-bold text-white drop-shadow-lg">{property.title || 'Property for Rent'}</h1>
                             <div className="flex items-center gap-1.5 text-white/80 text-sm mt-1">
-                                <MapPin size={14} /> {property.location}
+                                <MapPin size={14} /> {property.location || 'Dubai'}
                             </div>
                         </div>
                         <div className="flex gap-2">
@@ -186,12 +186,12 @@ export default function RentPropertyDetailPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-neutral-50 rounded-2xl">
                         <div className="flex flex-col items-center gap-1 border-r border-neutral-200 last:border-0">
                             <BedDouble size={18} className="text-neutral-400" />
-                            <span className="text-sm font-bold text-neutral-900">{property.bedrooms}</span>
+                            <span className="text-sm font-bold text-neutral-900">{property.bedrooms || '-'}</span>
                             <span className="text-[10px] text-neutral-400 uppercase font-medium">Bedrooms</span>
                         </div>
                         <div className="flex flex-col items-center gap-1 border-r border-neutral-200 last:border-0">
                             <Bath size={18} className="text-neutral-400" />
-                            <span className="text-sm font-bold text-neutral-900">{property.bathrooms}</span>
+                            <span className="text-sm font-bold text-neutral-900">{property.bathrooms || '-'}</span>
                             <span className="text-[10px] text-neutral-400 uppercase font-medium">Bathrooms</span>
                         </div>
                         <div className="flex flex-col items-center gap-1 border-r border-neutral-200 last:border-0">
@@ -283,25 +283,9 @@ export default function RentPropertyDetailPage() {
                                 </div>
                             )}
                             <div className="flex items-center justify-between text-sm py-2">
-                                <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> Security Deposit</span>
-                                <span className="font-semibold text-neutral-900">5% Annual Rent</span>
+                                <span className="text-neutral-400 flex items-center gap-2"><Star size={14} /> DLD Reference</span>
+                                <span className="font-semibold text-neutral-900 uppercase">Pending</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm">
-                                <Star size={24} />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-neutral-900">Hot Property</h3>
-                                <p className="text-xs text-neutral-500">Listed recently</p>
-                            </div>
-                        </div>
-                        <div className="bg-white/60 backdrop-blur-sm p-3 rounded-xl border border-white flex items-center justify-between">
-                            <span className="text-xs font-bold text-neutral-600 flex items-center gap-1.5"><Eye size={14} /> 12 Views today</span>
-                            <span className="text-[10px] font-bold text-emerald-600">+5% week</span>
                         </div>
                     </div>
                 </div>
