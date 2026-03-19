@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, MapPin, BedDouble, Bath, Maximize, Heart, Share2, Plus, Loader2 } from "lucide-react";
+import { Search, Filter, MapPin, BedDouble, Bath, Maximize, Heart, Share2, Plus, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import AddPropertyWizard from "@/components/AddPropertyWizard";
+import { toast } from "sonner";
 
 interface Property {
     id: string;
@@ -22,6 +23,7 @@ export default function RentInventoryPage() {
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
     const [showWizard, setShowWizard] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProperties();
@@ -38,6 +40,22 @@ export default function RentInventoryPage() {
             console.error("Fetch Properties Error:", err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const deleteProperty = async (id: string, title: string) => {
+        if (!confirm(`Delete "${title || 'this property'}"? This cannot be undone.`)) return;
+        setDeletingId(id);
+        try {
+            const res = await fetch(`/api/admin/properties/${id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            setProperties(prev => prev.filter(p => p.id !== id));
+            toast.success("Property deleted.");
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete property");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -128,7 +146,13 @@ export default function RentInventoryPage() {
                                         <span className="text-xs text-neutral-400 ml-1">/ yr</span>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button className="p-2 rounded-full hover:bg-neutral-50 text-neutral-400 hover:text-red-500 transition-colors"><Heart size={18} /></button>
+                                        <button
+                                            onClick={e => { e.preventDefault(); deleteProperty(property.id, property.title); }}
+                                            disabled={deletingId === property.id}
+                                            className="p-2 rounded-full hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                                        >
+                                            {deletingId === property.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                                        </button>
                                         <button className="p-2 rounded-full hover:bg-neutral-50 text-neutral-400 hover:text-neutral-900 transition-colors"><Share2 size={18} /></button>
                                     </div>
                                 </div>
