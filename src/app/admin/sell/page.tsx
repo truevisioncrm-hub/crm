@@ -1,60 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, MapPin, BedDouble, Bath, Maximize, Heart, Share2, Plus, X, Loader2 } from "lucide-react";
+import { Search, Filter, MapPin, BedDouble, Bath, Maximize, Heart, Share2, Plus, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { toast } from "sonner";
-
-// Dubai locations
-const DUBAI_LOCATIONS = [
-    "Downtown Dubai", "Dubai Marina", "Palm Jumeirah", "Business Bay",
-    "Jumeirah Beach Residence (JBR)", "DIFC", "Dubai Hills Estate",
-    "Arabian Ranches", "Jumeirah Village Circle (JVC)", "Al Barsha",
-    "Mirdif", "Deira", "Bur Dubai", "Jumeirah", "Al Quoz",
-    "Dubai Sports City", "Dubai Silicon Oasis", "International City",
-    "Discovery Gardens", "Motor City",
-];
-
-// AED sell price ranges
-const SELL_PRICES = [
-    "AED 300K - 500K", "AED 500K - 750K", "AED 750K - 1M",
-    "AED 1M - 1.5M", "AED 1.5M - 2M", "AED 2M - 3M",
-    "AED 3M - 5M", "AED 5M - 10M", "AED 10M+",
-];
-
-const AMENITIES_LIST = [
-    "Maid's Room", "Balcony", "Built-in Wardrobes", "Central A/C",
-    "Covered Parking", "Private Garden", "Shared Pool", "Security",
-    "View of Water", "Walk-in Closet", "View of Landmark"
-];
+import AddPropertyWizard from "@/components/AddPropertyWizard";
 
 interface Property {
-    id: number;
+    id: string;
     title: string;
     location: string;
     price: string;
     type: string;
-    beds: number;
-    baths: number;
+    bedrooms: number;
+    bathrooms: number;
     area_sqft: number;
     status: string;
-    bua_sqft: number;
-    completion_status: string;
-    furnished: string;
-    payment_plan: any;
     property_type: string;
 }
 
 export default function SellInventoryPage() {
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const [priceSelect, setPriceSelect] = useState("AED 1M - 1.5M");
-    const [priceCustom, setPriceCustom] = useState("");
-    const [locationSelect, setLocationSelect] = useState("");
-    const [locationCustom, setLocationCustom] = useState("");
+    const [showWizard, setShowWizard] = useState(false);
 
     useEffect(() => {
         fetchProperties();
@@ -63,7 +30,7 @@ export default function SellInventoryPage() {
     const fetchProperties = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/admin/properties?type=Sell');
+            const response = await fetch("/api/admin/properties?type=Sell");
             const data = await response.json();
             if (data.error) throw new Error(data.error);
             setProperties(data);
@@ -71,56 +38,6 @@ export default function SellInventoryPage() {
             console.error("Fetch Properties Error:", err.message);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleAddProperty = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        const formData = new FormData(e.currentTarget);
-
-        const priceValue = priceSelect === "custom" ? priceCustom : priceSelect;
-        const locationValue = locationSelect === "custom" ? locationCustom : locationSelect;
-
-        const selectedAmenities = formData.getAll("amenities") as string[];
-        const features = selectedAmenities.reduce((acc, curr) => ({ ...acc, [curr]: true }), {});
-
-        const newProperty = {
-            title: formData.get("title") as string,
-            location: locationValue,
-            price: priceValue,
-            type: "Sell",
-            property_type: formData.get("property_type") as string,
-            area_sqft: Number(formData.get("area_sqft")) || null,
-            bua_sqft: Number(formData.get("bua_sqft")) || null,
-            bedrooms: Number(formData.get("bedrooms")) || null,
-            bathrooms: Number(formData.get("bathrooms")) || null,
-            status: formData.get("status") as string || "available",
-            completion_status: formData.get("completion_status") as string || "Completed",
-            furnished: formData.get("furnished") as string || "Unfurnished",
-            description: formData.get("description") as string || null,
-            features,
-        };
-
-        try {
-            const response = await fetch('/api/admin/properties', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newProperty),
-            });
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-            setProperties([data as unknown as Property, ...properties]);
-            setIsModalOpen(false);
-            toast.success("Property listed successfully!");
-            setPriceSelect("AED 1M - 1.5M");
-            setPriceCustom("");
-            setLocationSelect("");
-            setLocationCustom("");
-        } catch (err: any) {
-            toast.error(err.message || "Failed to add property");
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -136,7 +53,10 @@ export default function SellInventoryPage() {
                     <button className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-semibold hover:bg-neutral-50 transition-colors shadow-sm">
                         <Filter size={16} /> Filters
                     </button>
-                    <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25 flex items-center gap-2">
+                    <button
+                        onClick={() => setShowWizard(true)}
+                        className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25 flex items-center gap-2"
+                    >
                         <Plus size={16} /> Add Property
                     </button>
                 </div>
@@ -155,7 +75,10 @@ export default function SellInventoryPage() {
                     <p className="text-sm text-neutral-500 mb-6 text-center max-w-sm">
                         No properties listed for sale yet. Add your first Dubai listing.
                     </p>
-                    <button onClick={() => setIsModalOpen(true)} className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:bg-primary-dark transition-all">
+                    <button
+                        onClick={() => setShowWizard(true)}
+                        className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:bg-primary-dark transition-all"
+                    >
                         + Add First Property
                     </button>
                 </div>
@@ -163,34 +86,35 @@ export default function SellInventoryPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {properties.map((property) => (
                         <Link href={`/admin/sell/${property.id}`} key={property.id} className="group bg-white border border-neutral-100 rounded-3xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 card-shadow flex flex-col">
-                            <div className={`h-48 w-full bg-neutral-200 relative`}>
-                                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-neutral-900 shadow-sm">
+                            <div className="h-48 w-full bg-neutral-200 relative">
+                                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-neutral-900 shadow-sm capitalize">
                                     {property.property_type || property.type}
                                 </div>
-                                <div className={`absolute top-4 right-4 px-3 py-1 rounded-lg text-xs font-bold shadow-sm ${property.status === "available" ? "bg-emerald-500 text-white" :
+                                <div className={`absolute top-4 right-4 px-3 py-1 rounded-lg text-xs font-bold shadow-sm ${
+                                    property.status === "available" ? "bg-emerald-500 text-white" :
                                     property.status === "reserved" ? "bg-amber-500 text-white" :
-                                        "bg-red-500 text-white"
-                                    }`}>
+                                    "bg-red-500 text-white"
+                                }`}>
                                     {property.status}
                                 </div>
                             </div>
 
                             <div className="p-5 flex-1 flex flex-col">
                                 <div className="flex-1">
-                                    <h3 className="text-lg font-bold text-neutral-900 mb-1 line-clamp-1">{property.title}</h3>
+                                    <h3 className="text-lg font-bold text-neutral-900 mb-1 line-clamp-1">{property.title || "Untitled Property"}</h3>
                                     <div className="flex items-center gap-1.5 text-neutral-500 text-sm mb-4">
                                         <MapPin size={14} className="shrink-0" />
                                         <span className="truncate">{property.location}</span>
                                     </div>
                                     <div className="flex items-center gap-3 mb-6 flex-wrap">
-                                        {property.beds && (
+                                        {property.bedrooms && (
                                             <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 bg-neutral-50 px-2 py-1 rounded-lg">
-                                                <BedDouble size={14} className="text-neutral-400" /> {property.beds} Beds
+                                                <BedDouble size={14} className="text-neutral-400" /> {property.bedrooms} Beds
                                             </div>
                                         )}
-                                        {property.baths && (
+                                        {property.bathrooms && (
                                             <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 bg-neutral-50 px-2 py-1 rounded-lg">
-                                                <Bath size={14} className="text-neutral-400" /> {property.baths} Baths
+                                                <Bath size={14} className="text-neutral-400" /> {property.bathrooms} Baths
                                             </div>
                                         )}
                                         <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 bg-neutral-50 px-2 py-1 rounded-lg">
@@ -211,159 +135,16 @@ export default function SellInventoryPage() {
                 </div>
             )}
 
-            {/* Add Property Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="flex items-center justify-between p-6 border-b border-neutral-100 shrink-0">
-                            <div>
-                                <h3 className="text-xl font-bold text-neutral-900">Add Property for Sale</h3>
-                                <p className="text-sm text-neutral-500 mt-1">List a new Dubai property for sale.</p>
-                            </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-xl transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                            <form id="add-property-form" onSubmit={handleAddProperty} className="space-y-6">
-                                {/* Property Details */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Property Details</h4>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-neutral-700">Property Title *</label>
-                                        <input required name="title" type="text" placeholder="e.g. Luxury 2BR Apartment in Dubai Marina" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Property Type *</label>
-                                            <select required name="property_type" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="apartment">Apartment</option>
-                                                <option value="villa">Villa</option>
-                                                <option value="townhouse">Townhouse</option>
-                                                <option value="penthouse">Penthouse</option>
-                                                <option value="duplex">Duplex</option>
-                                                <option value="plot">Plot / Land</option>
-                                                <option value="commercial">Commercial</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Location / Area *</label>
-                                            <select required value={locationSelect} onChange={(e) => setLocationSelect(e.target.value)} className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="" disabled>Select Dubai area...</option>
-                                                {DUBAI_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                                                <option value="custom">✏️ Other / Custom</option>
-                                            </select>
-                                            {locationSelect === "custom" && (
-                                                <input required value={locationCustom} onChange={(e) => setLocationCustom(e.target.value)} type="text" placeholder="Enter area name" className="w-full mt-2 px-4 py-2 bg-white border border-primary/30 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Pricing & Specs */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Pricing & Specifications</h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Sale Price (AED) *</label>
-                                            <select required value={priceSelect} onChange={(e) => setPriceSelect(e.target.value)} className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                {SELL_PRICES.map(p => <option key={p} value={p}>{p}</option>)}
-                                                <option value="custom">✏️ Custom</option>
-                                            </select>
-                                            {priceSelect === "custom" && (
-                                                <input required value={priceCustom} onChange={(e) => setPriceCustom(e.target.value)} type="text" placeholder="e.g. AED 2,500,000" className="w-full mt-2 px-4 py-2 bg-white border border-primary/30 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
-                                            )}
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Plot Area (sqft)</label>
-                                            <input name="area_sqft" type="number" placeholder="e.g. 1500" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">BUA (sqft)</label>
-                                            <input name="bua_sqft" type="number" placeholder="e.g. 1200" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Bedrooms</label>
-                                            <select name="bedrooms" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="">Studio / Select</option>
-                                                <option value="1">1 Bedroom</option>
-                                                <option value="2">2 Bedrooms</option>
-                                                <option value="3">3 Bedrooms</option>
-                                                <option value="4">4 Bedrooms</option>
-                                                <option value="5">5+ Bedrooms</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Bathrooms</label>
-                                            <select name="bathrooms" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="">Select</option>
-                                                <option value="1">1 Bathroom</option>
-                                                <option value="2">2 Bathrooms</option>
-                                                <option value="3">3 Bathrooms</option>
-                                                <option value="4">4+ Bathrooms</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Status</label>
-                                            <select name="status" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="available">Available</option>
-                                                <option value="reserved">Reserved</option>
-                                                <option value="sold">Sold</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Completion</label>
-                                            <select name="completion_status" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="Completed">Ready / Completed</option>
-                                                <option value="Off-plan">Off-plan</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-neutral-700">Furnishing</label>
-                                            <select name="furnished" className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="Unfurnished">Unfurnished</option>
-                                                <option value="Partly Furnished">Partly Furnished</option>
-                                                <option value="Furnished">Furnished</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Amenities */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Amenities</h4>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                                        {AMENITIES_LIST.map((amenity) => (
-                                            <label key={amenity} className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer">
-                                                <input type="checkbox" name="amenities" value={amenity} className="rounded text-primary focus:ring-primary/20 bg-neutral-50 border-neutral-300" />
-                                                <span className="truncate">{amenity}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Additional Info */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-2">Additional Info</h4>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-neutral-700">Description (Optional)</label>
-                                        <textarea name="description" rows={3} placeholder="Key features, amenities, nearby landmarks, payment plan details..." className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all custom-scrollbar resize-none"></textarea>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <div className="p-6 border-t border-neutral-100 bg-neutral-50/50 flex items-center justify-end gap-3 shrink-0">
-                            <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 hover:bg-neutral-200 transition-colors">Cancel</button>
-                            <button type="submit" form="add-property-form" disabled={isSubmitting} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                                {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : "Save Listing"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {/* Wizard */}
+            {showWizard && (
+                <AddPropertyWizard
+                    listingType="Sell"
+                    onClose={() => setShowWizard(false)}
+                    onSuccess={() => {
+                        setShowWizard(false);
+                        fetchProperties();
+                    }}
+                />
             )}
         </div>
     );
